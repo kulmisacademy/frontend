@@ -1,0 +1,220 @@
+📄 LAAS24 – Product Requirements Document (PRD)
+🧠 1. Product Overview
+
+LAAS24 is a modern multi-vendor eCommerce platform designed for the Somali market and scalable globally.
+
+It enables individuals to:
+
+Create their own online store
+Upload and manage products بسهولة
+Share store and product links
+Sell through WhatsApp and in-app chat
+
+The platform combines:
+
+Marketplace browsing (like Amazon)
+Social selling (WhatsApp-based orders)
+AI-assisted product creation
+🎯 2. Objectives
+Allow users to create a store in under 2 minutes
+Enable vendors to upload unlimited products (based on plan)
+Provide a fast, optimized product marketplace
+Enable WhatsApp-based ordering flow
+Provide AI tools for product creation
+Support 10K+ daily active users without performance issues
+👥 3. User Roles
+🔹 Customer (Buyer)
+Register / Login
+Browse all products (homepage marketplace)
+Filter products (category, price, location)
+View product details
+Contact vendor via:
+WhatsApp (primary)
+In-app chat (optional)
+Place order request
+Track orders
+Leave rating & feedback
+🔹 Vendor (Store Owner)
+Register account
+Create store profile
+Upload products
+Manage products
+Receive order requests
+Share:
+Store link
+Product links
+Chat with customers
+Use AI product assistant (premium)
+🔹 Admin
+Approve vendor registrations
+Manage users and stores
+Monitor products
+Control subscriptions
+Platform analytics
+🏪 4. Store Creation Flow
+Vendor Registration Fields:
+Full Name
+Phone Number
+Email
+Password
+Store Setup:
+Store Name
+Store Logo
+Store Phone Number
+Country (dropdown)
+Region (dropdown based on country)
+District (auto-suggest OR manual input)
+
+👉 Store must be approved by Admin before going live
+
+🛍️ 5. Product Management
+Vendor can:
+Add Product
+Edit Product
+Delete Product
+Product Fields:
+Product Name
+Description
+Price (current)
+Old Price (optional)
+Category
+Images (max 4)
+Video (max 1, 1 minute)
+Location
+🔗 6. Sharing System (CORE FEATURE)
+
+Each vendor has:
+
+Store Link:
+laas24.com/store/{storeName}
+Product Link:
+laas24.com/product/{productId}
+
+👉 Vendor can:
+
+Copy link
+Share via WhatsApp
+Share via social media
+🏠 7. Marketplace (Homepage)
+Features:
+Display all products from all vendors
+Product grid (ShadCN UI based)
+Filters:
+Category
+Price range
+Location
+Latest / Popular
+
+👉 This is the main entry point for customers
+
+📱 8. WhatsApp Order Flow (VERY IMPORTANT)
+Flow:
+Customer clicks "Order via WhatsApp"
+System generates message:
+Hello, I want this product:
+Product Name: XXX
+Price: XXX
+Link: XXX
+Opens WhatsApp with vendor number
+
+👉 This is the primary ordering system
+
+💬 9. In-App Chat (Optional Advanced Feature)
+Real-time messaging
+Buyer ↔ Vendor communication
+Order discussion
+⭐ 10. Ratings & Feedback
+Customer can rate vendor after order
+1–5 star rating
+Written feedback
+🤖 11. AI Product Assistant (Premium Feature)
+Function:
+User uploads product image
+AI generates:
+Product Name
+Description
+User manually adds:
+Price
+Plans:
+Free → No AI / Limited products
+Paid → AI enabled + higher limits
+💳 12. Subscription System
+Plans:
+Free Plan:
+Limited products
+No AI
+Premium Plan:
+More products
+AI product generation
+🎨 13. UI/UX Requirements
+Frontend:
+Built with Next.js
+UI using ShadCN UI
+Hero section:
+Use:
+https://shadcnstudio.com/blocks/marketing-ui/hero-section
+Product Listing:
+Use ShadCN cards
+Customize to match LAAS24 branding
+Themes:
+Light mode
+Dark mode
+
+🎨 Typography & Design System
+Fonts:
+Headings: Plus Jakarta Sans (premium, startup-style; weights 600–800 for titles)
+Body: Inter (clean, readable; weights 400–700)
+Design principles:
+Minimal, spacious layout with consistent vertical rhythm
+High contrast for headings; body text optimized for long reading (relaxed line-height)
+Soft elevation: subtle shadows on cards and hover states
+Rounded UI: border-radius approximately 12px–16px on cards and primary controls
+Color system:
+Primary: Green (brand / logo)
+Secondary: Yellow/Gold (accents, badges)
+Background: White or light gray (light); deep neutral (dark)
+Theme support: Light and dark mode with the same token structure
+
+🎨 14. Branding
+
+Based on your logo:
+
+Primary Color: Green (#16A34A style)
+Secondary Color: Yellow/Gold (#FACC15 style)
+Clean white background
+Modern minimal UI
+⚙️ 15. Technical Architecture
+Frontend:
+Next.js (App Router)
+Backend:
+Express.js
+Database:
+Supabase (PostgreSQL)
+Images:
+ImageKit
+Cache (future):
+Redis
+📁 16. Project Structure (IMPORTANT)
+laas24/
+│
+├── frontend/   (Next.js)
+│
+├── backend/    (Express API)
+│
+└── docs/
+
+❗ Backend and Frontend MUST be separate
+
+🚀 17. Performance Requirements
+Page load < 2 seconds
+Support 10K daily users
+Use:
+Pagination
+Image optimization
+CDN
+Caching (Redis later)
+🔐 18. Security
+JWT Authentication
+Password hashing (bcrypt)
+Rate limiting
+Input validation

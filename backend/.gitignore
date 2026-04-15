@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Secrets and local env (use .env.example as template)
+.env
+.env.local
+.env.*.local
+
+# Logs and OS
+*.log
+.DS_Store

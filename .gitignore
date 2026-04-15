@@ -1,0 +1,9 @@
+# Root (monorepo)
+node_modules/
+.env
+.env.*
+.DS_Store
+
+# Next.js (if tooling runs at root)
+.next/
+out/
