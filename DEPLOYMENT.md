@@ -44,7 +44,17 @@ Separated **Next.js frontend** and **Express backend**. The browser calls the AP
 
 ### Repository
 
-- **Root directory:** `frontend/` (or monorepo with “Root Directory” = `frontend`).
+- **Recommended:** set **Root Directory** to **`frontend`** (Vercel → Project → **Settings** → **General** → Root Directory). The app then uses `frontend/package.json` and `frontend/vercel.json`; install/build are normal `npm ci` / `npm run build` with **no** `--prefix`.
+- **Alternative:** leave Root Directory at the **repository root** and rely on the **`vercel.json` at the repo root** (it runs `npm ci --prefix frontend` and `npm run build --prefix frontend`). Use one approach only.
+
+### Vercel dashboard (step by step)
+
+1. **Import** the GitHub repo (e.g. `kulmisacademy/frontend`) if you have not already.
+2. **Settings** → **General** → **Root Directory** → **Edit** → set to **`frontend`** → **Save**.
+3. **Settings** → **Build and Deployment** → **Framework Settings**: leave **Next.js**; keep **Install / Build / Output overrides OFF** unless you know you need them (defaults work with Root Directory = `frontend`).
+4. Add **Environment variables** (see table below), then **Deployments** → **Redeploy** the latest `main`.
+
+If Root Directory is `frontend`, do **not** also rely on the root `vercel.json` `--prefix` commands (that file applies when the project root is the **repo** root).
 
 ### Environment variables (Vercel → Settings → Environment Variables)
 
@@ -66,7 +76,8 @@ Apply to **Production** (and **Preview** if you use preview deployments).
 
 ### Build
 
-- Default: `npm run build` in `frontend/`.
+- With **Root Directory = `frontend`:** `npm ci` then `npm run build` (Vercel defaults).
+- With **Root Directory = repo root:** root `vercel.json` runs install/build with `--prefix frontend`.
 
 ---
 

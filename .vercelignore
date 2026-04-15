@@ -1,0 +1,3 @@
+# Frontend-only deploy: skip heavy / irrelevant paths (full repo is still cloned; this trims serverless bundle inputs where applicable)
+backend/node_modules
+.agents
