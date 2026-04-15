@@ -1,15 +1,6 @@
-import { MarketingShell } from "@/components/marketing-shell";
-import { CheckoutClient } from "./checkout-client";
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Checkout",
-};
-
+/** Checkout is WhatsApp-only; use /cart */
 export default function CheckoutPage() {
-  return (
-    <MarketingShell>
-      <CheckoutClient />
-    </MarketingShell>
-  );
+  redirect("/cart");
 }

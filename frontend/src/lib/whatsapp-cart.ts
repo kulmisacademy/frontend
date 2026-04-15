@@ -1,6 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
-import { productUrl } from "@/lib/urls";
 import { buildWhatsAppMessageUrl } from "@/lib/whatsapp";
 
 export type CartWhatsAppLine = {
@@ -10,73 +9,89 @@ export type CartWhatsAppLine = {
   quantity: number;
 };
 
-/** Plain-text Somali message for multi-item cart (matches PRD template). */
-export function buildCartWhatsAppMessage(lines: CartWhatsAppLine[]): string {
+/** Somali WhatsApp text for cart checkout with order id (after DB save). */
+export function buildCartWhatsAppMessage(
+  lines: CartWhatsAppLine[],
+  orderCode: string
+): string {
   let message = "Salaan 👋,\n\nWaxaan rabaa alaabtan:\n\n";
   let total = 0;
   lines.forEach((item, index) => {
-    message += `${index + 1}. Product: ${item.name}\n`;
-    message += `   Price: ${formatPrice(item.price)}\n`;
-    message += `   Quantity: ${item.quantity}\n`;
-    message += `   Link: ${productUrl(item.id)}\n\n`;
-    total += item.price * item.quantity;
+    const lineTotal = item.price * item.quantity;
+    total += lineTotal;
+    message += `${index + 1}. ${item.name} - ${formatPrice(lineTotal)}\n`;
   });
-  message += `Total: ${formatPrice(total)}\n\n`;
-  message += "Fadlan ii soo sheeg sida aan ku heli karo.";
+  message += `\nTotal: ${formatPrice(total)}\n\n`;
+  message += `Order ID: ${orderCode}\n\n`;
+  message += "Fadlan ii soo xaqiiji dalabkan.";
   return message;
 }
 
 type OpenCartWaParams = {
-  storeSlug: string;
+  storeId: string;
   whatsapp: string;
   lines: CartWhatsAppLine[];
   token?: string | null;
-  customerName?: string | null;
-  customerPhone?: string | null;
 };
 
-/** Saves the cart order when possible, then opens WhatsApp with the Somali template. */
+export type WhatsAppCartResult =
+  | { ok: true; orderCode: string }
+  | { ok: false; error: string };
+
+/**
+ * Saves order via POST /api/orders, then opens WhatsApp with order id.
+ * Does not open WhatsApp if the API save fails.
+ */
 export async function openWhatsAppCartOrder(
   params: OpenCartWaParams
-): Promise<void> {
+): Promise<WhatsAppCartResult> {
   const total = params.lines.reduce(
     (acc, l) => acc + l.price * l.quantity,
     0
   );
-  const text = buildCartWhatsAppMessage(params.lines);
-  const waUrl = buildWhatsAppMessageUrl(params.whatsapp, text);
-  try {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (params.token) {
-      headers.Authorization = `Bearer ${params.token}`;
-    }
-    const products = params.lines.map((l) => ({
-      product_id: l.id,
-      name: l.name,
-      quantity: l.quantity,
-      price: l.price,
-    }));
-    const items_summary = params.lines
-      .map((l) => `${l.name} × ${l.quantity}`)
-      .join("; ");
-    await fetch(
-      `${getApiBaseUrl()}/api/stores/public/${encodeURIComponent(params.storeSlug)}/orders`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          items_summary,
-          total,
-          products,
-          customer_name: params.customerName?.trim() || undefined,
-          customer_phone: params.customerPhone?.trim() || undefined,
-        }),
-      }
-    );
-  } catch {
-    /* still open WhatsApp */
+  const items = params.lines.map((l) => ({
+    product_id: l.id,
+    name: l.name,
+    quantity: l.quantity,
+    price: l.price,
+  }));
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (params.token) {
+    headers.Authorization = `Bearer ${params.token}`;
   }
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBaseUrl()}/api/orders`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        store_id: params.storeId,
+        items,
+        total,
+      }),
+    });
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Network error",
+    };
+  }
+  if (!res.ok) {
+    let msg = res.statusText;
+    try {
+      const j = (await res.json()) as { error?: unknown };
+      if (typeof j.error === "string") msg = j.error;
+    } catch {
+      /* ignore */
+    }
+    return { ok: false, error: msg };
+  }
+  const data = (await res.json()) as { order_id: string };
+  const orderCode = data.order_id;
+  const text = buildCartWhatsAppMessage(params.lines, orderCode);
+  const waUrl = buildWhatsAppMessageUrl(params.whatsapp, text);
   window.open(waUrl, "_blank", "noopener,noreferrer");
+  return { ok: true, orderCode };
 }

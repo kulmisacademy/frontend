@@ -7,6 +7,7 @@ const { loadEnv } = require("./config/env");
 const authRoutes = require("./routes/auth.routes");
 const publicStoreRoutes = require("./routes/public.routes");
 const catalogRoutes = require("./routes/catalog.routes");
+const ordersRoutes = require("./routes/orders.routes");
 const vendorRoutes = require("./routes/vendor.routes");
 const adminRoutes = require("./routes/admin.routes");
 const adminAuthController = require("./controllers/admin-auth.controller");
@@ -132,6 +133,7 @@ const catalogPublicLimiter = rateLimit({
 
 app.use("/api/stores", catalogPublicLimiter, publicStoreRoutes);
 app.use("/api/catalog", catalogPublicLimiter, catalogRoutes);
+app.use("/api/orders", catalogPublicLimiter, ordersRoutes);
 
 const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

@@ -71,8 +71,8 @@ export function CartPageClient() {
     const first = items[0]!.product;
     setWaBusy(true);
     try {
-      await openWhatsAppCartOrder({
-        storeSlug: first.storeSlug,
+      const r = await openWhatsAppCartOrder({
+        storeId: first.storeId,
         whatsapp: first.whatsapp,
         lines: items.map(({ line, product }) => ({
           id: product.id,
@@ -81,9 +81,12 @@ export function CartPageClient() {
           quantity: line.quantity,
         })),
         token: user?.role === "customer" ? token : null,
-        customerName: user?.role === "customer" ? user.name : null,
-        customerPhone: user?.role === "customer" ? user.phone : null,
       });
+      if (r.ok) {
+        clear();
+      } else {
+        window.alert(r.error);
+      }
     } finally {
       setWaBusy(false);
     }
@@ -95,8 +98,8 @@ export function CartPageClient() {
         Your cart
       </h1>
       <p className="mt-2 text-muted-foreground">
-        One store per cart. Use Checkout via WhatsApp to send your list to the
-        vendor, or continue to the checkout page to place a request.
+        One store per cart. Checkout via WhatsApp saves your order and opens the
+        store on WhatsApp with your list and order ID.
       </p>
 
       {lines.length === 0 ? (
@@ -249,9 +252,6 @@ export function CartPageClient() {
                 <MessageCircle className="size-5 shrink-0" aria-hidden />
               )}
               {waBusy ? "Opening…" : "Checkout via WhatsApp"}
-            </Button>
-            <Button className="mt-3 w-full rounded-2xl" size="lg" variant="secondary" asChild>
-              <Link href="/checkout">Proceed to checkout</Link>
             </Button>
             <Button variant="outline" className="mt-3 w-full rounded-2xl" asChild>
               <Link href="/marketplace">Keep shopping</Link>

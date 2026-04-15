@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { useAdminSession } from "@/components/dashboard/admin-session-context";
 import { adminFetch } from "@/lib/admin-api-client";
+import { cn } from "@/lib/utils";
 
 type OrderRow = {
   id: string;
@@ -91,8 +92,18 @@ export default function AdminOrdersPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge
-                      variant={o.status === "completed" ? "success" : "secondary"}
-                      className="rounded-full capitalize"
+                      variant={
+                        o.status === "approved"
+                          ? "success"
+                          : o.status === "rejected"
+                            ? "secondary"
+                            : "secondary"
+                      }
+                      className={cn(
+                        "rounded-full capitalize",
+                        o.status === "rejected" &&
+                          "border-destructive/40 bg-destructive/10 text-destructive"
+                      )}
                     >
                       {o.status}
                     </Badge>

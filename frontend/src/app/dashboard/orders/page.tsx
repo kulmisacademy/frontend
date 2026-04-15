@@ -8,15 +8,19 @@ import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch } from "@/lib/api";
+import { formatPrice } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 type OrderRow = {
   id: string;
+  order_code?: string | null;
   status: string;
   customer_name: string | null;
   customer_phone: string | null;
   message: string | null;
   items_summary: string | null;
   total: number | null;
+  products?: unknown;
   created_at: string;
   product_id: string | null;
   product_name: string | null;
@@ -53,7 +57,10 @@ export default function DashboardOrdersPage() {
     void load();
   }, [load]);
 
-  async function setStatus(id: string, status: "pending" | "completed") {
+  async function setStatus(
+    id: string,
+    status: "pending" | "approved" | "rejected"
+  ) {
     if (!token) return;
     setBusy(true);
     try {
@@ -70,6 +77,18 @@ export default function DashboardOrdersPage() {
     }
   }
 
+  function statusBadgeProps(s: string) {
+    if (s === "approved")
+      return { variant: "success" as const, className: undefined };
+    if (s === "rejected")
+      return {
+        variant: "secondary" as const,
+        className:
+          "border-destructive/40 bg-destructive/10 text-destructive dark:bg-destructive/15",
+      };
+    return { variant: "secondary" as const, className: undefined };
+  }
+
   if (loading || !user) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center py-20">
@@ -83,10 +102,10 @@ export default function DashboardOrdersPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold md:text-3xl">
-            Order requests
+            Orders
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Track buyer messages and mark orders complete.
+            Approve or reject requests. Buyers can rate after approval.
           </p>
         </div>
         <Button variant="outline" className="rounded-2xl" asChild>
@@ -107,16 +126,31 @@ export default function DashboardOrdersPage() {
             className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <Badge
-                  variant={o.status === "completed" ? "success" : "secondary"}
-                  className="rounded-full capitalize"
-                >
-                  {o.status}
-                </Badge>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant={statusBadgeProps(o.status).variant}
+                    className={cn(
+                      "rounded-full capitalize",
+                      statusBadgeProps(o.status).className
+                    )}
+                  >
+                    {o.status}
+                  </Badge>
+                  {o.order_code ? (
+                    <span className="font-mono text-sm font-semibold text-foreground">
+                      {o.order_code}
+                    </span>
+                  ) : null}
+                </div>
                 <p className="mt-2 text-sm text-muted-foreground">
                   {new Date(o.created_at).toLocaleString()}
                 </p>
+                {o.total != null ? (
+                  <p className="mt-2 font-heading text-lg font-bold">
+                    {formatPrice(Number(o.total))}
+                  </p>
+                ) : null}
                 {o.customer_name || o.customer_phone ? (
                   <p className="mt-2 font-medium">
                     {o.customer_name || "—"}{" "}
@@ -137,15 +171,27 @@ export default function DashboardOrdersPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {o.status === "pending" ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="rounded-xl"
-                    disabled={busy}
-                    onClick={() => void setStatus(o.id, "completed")}
-                  >
-                    Mark complete
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="rounded-xl"
+                      disabled={busy}
+                      onClick={() => void setStatus(o.id, "approved")}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      className="rounded-xl"
+                      disabled={busy}
+                      onClick={() => void setStatus(o.id, "rejected")}
+                    >
+                      Reject
+                    </Button>
+                  </>
                 ) : (
                   <Button
                     type="button"
@@ -155,7 +201,7 @@ export default function DashboardOrdersPage() {
                     disabled={busy}
                     onClick={() => void setStatus(o.id, "pending")}
                   >
-                    Reopen
+                    Set pending
                   </Button>
                 )}
               </div>
@@ -165,8 +211,7 @@ export default function DashboardOrdersPage() {
       </ul>
       {orders.length === 0 && !busy ? (
         <p className="mt-8 text-sm text-muted-foreground">
-          No order requests yet. When buyers submit requests (e.g. from checkout),
-          they will appear here.
+          No orders yet. When buyers check out via WhatsApp, they appear here.
         </p>
       ) : null}
     </div>

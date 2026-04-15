@@ -49,18 +49,18 @@ export function ProductCard({ product, imagePriority }: ProductCardProps) {
     if (!product.inStock || waBusy) return;
     setWaBusy(true);
     try {
-      await openWhatsAppProductOrder({
-        storeSlug: product.storeSlug,
+      const r = await openWhatsAppProductOrder({
+        storeId: product.storeId,
         productId: product.id,
         whatsapp: product.whatsapp,
         productName: product.name,
-        priceLabel: formatPrice(product.price),
         productUrl: absUrl,
         priceNumber: product.price,
         token: user?.role === "customer" ? token : null,
-        customerName: user?.role === "customer" ? user.name : null,
-        customerPhone: user?.role === "customer" ? user.phone : null,
       });
+      if (!r.ok && r.error) {
+        window.alert(r.error);
+      }
     } finally {
       setWaBusy(false);
     }

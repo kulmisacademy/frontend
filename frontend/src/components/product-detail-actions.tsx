@@ -5,7 +5,6 @@ import { MessageCircle, ShoppingCart } from "lucide-react";
 import type { Product } from "@/lib/catalog";
 import { CART_SINGLE_STORE_ERROR, useCart } from "@/context/cart-context";
 import { useAuth } from "@/context/auth-context";
-import { formatPrice } from "@/lib/format";
 import { productUrl } from "@/lib/urls";
 import { openWhatsAppProductOrder } from "@/lib/whatsapp-order";
 import { Button } from "@/components/ui/button";
@@ -20,18 +19,18 @@ export function ProductDetailActions({ product }: { product: Product }) {
     if (!product.inStock || waBusy) return;
     setWaBusy(true);
     try {
-      await openWhatsAppProductOrder({
-        storeSlug: product.storeSlug,
+      const r = await openWhatsAppProductOrder({
+        storeId: product.storeId,
         productId: product.id,
         whatsapp: product.whatsapp,
         productName: product.name,
-        priceLabel: formatPrice(product.price),
         productUrl: absUrl,
         priceNumber: product.price,
         token: user?.role === "customer" ? token : null,
-        customerName: user?.role === "customer" ? user.name : null,
-        customerPhone: user?.role === "customer" ? user.phone : null,
       });
+      if (!r.ok && r.error) {
+        window.alert(r.error);
+      }
     } finally {
       setWaBusy(false);
     }

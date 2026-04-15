@@ -184,7 +184,7 @@ async function createOrderRequest(req, res) {
     }
     const customerId =
       req.user && req.user.role === "customer" ? req.user.id : null;
-    const order = await orderModel.createOrder({
+    const order = await orderModel.createOrderWithCode({
       store_id: store.id,
       status: "pending",
       customer_name: customer_name || null,

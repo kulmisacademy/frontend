@@ -512,7 +512,7 @@ async function customerOrders(req, res) {
         orderModel.normalizePhone(o.customer_phone) === userDigits;
       const owns = ownsById || ownsByPhone;
       const has_rated = ratedSet.has(o.id);
-      const can_rate = o.status === "completed" && owns && !has_rated;
+      const can_rate = o.status === "approved" && owns && !has_rated;
       return {
         ...o,
         can_rate,
@@ -545,9 +545,9 @@ async function rateOrder(req, res) {
       });
     }
     const order = await orderModel.findById(req.params.id);
-    if (!order || order.status !== "completed") {
+    if (!order || order.status !== "approved") {
       return res.status(400).json({ error: "Order is not eligible for rating" });
-    }
+   }
     const phoneOk =
       user.phone && orderModel.normalizePhone(user.phone).length >= 5;
     const userDigits = phoneOk ? orderModel.normalizePhone(user.phone) : "";

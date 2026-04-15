@@ -41,6 +41,26 @@ async function createOrder(row) {
   return data;
 }
 
+async function bumpStoreOrderSeq(storeId) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc("bump_store_order_seq", {
+    p_store_id: storeId,
+  });
+  if (error) throw error;
+  const n = typeof data === "number" ? data : parseInt(String(data), 10);
+  if (!Number.isFinite(n)) {
+    throw new Error("Invalid order sequence");
+  }
+  return n;
+}
+
+/** Inserts with per-store ORD-001 style order_code */
+async function createOrderWithCode(row) {
+  const n = await bumpStoreOrderSeq(row.store_id);
+  const order_code = `ORD-${String(n).padStart(3, "0")}`;
+  return createOrder({ ...row, order_code });
+}
+
 async function updateStatus(id, status) {
   const supabase = getSupabase();
   const { data, error } = await supabase
@@ -155,6 +175,8 @@ module.exports = {
   listByStoreId,
   findById,
   createOrder,
+  createOrderWithCode,
+  bumpStoreOrderSeq,
   updateStatus,
   countByStoreId,
   pendingCountByStoreId,

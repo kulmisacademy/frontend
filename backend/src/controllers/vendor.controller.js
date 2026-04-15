@@ -438,7 +438,7 @@ async function patchOrder(req, res) {
     if (!store) return res.status(404).json({ error: "No store" });
     const { id } = req.params;
     const schema = z.object({
-      status: z.enum(["pending", "completed"]),
+      status: z.enum(["pending", "approved", "rejected"]),
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {

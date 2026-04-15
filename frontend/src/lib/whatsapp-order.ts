@@ -1,51 +1,75 @@
 import { getApiBaseUrl } from "@/lib/api";
-import { buildWhatsAppOrderUrl } from "@/lib/whatsapp";
+import { formatPrice } from "@/lib/format";
+import { buildWhatsAppMessageUrl } from "@/lib/whatsapp";
 
 type OpenProductWaOrderParams = {
-  storeSlug: string;
+  storeId: string;
   productId: string;
   whatsapp: string;
   productName: string;
-  priceLabel: string;
-  productUrl: string;
   priceNumber: number;
+  productUrl: string;
   token?: string | null;
-  customerName?: string | null;
-  customerPhone?: string | null;
 };
 
-/** Saves the order on the server (when possible), then opens WhatsApp with the Somali template. */
+/** Saves order via POST /api/orders, then opens WhatsApp with order id. */
 export async function openWhatsAppProductOrder(
   params: OpenProductWaOrderParams
-): Promise<void> {
-  const wa = buildWhatsAppOrderUrl(
-    params.whatsapp,
-    params.productName,
-    params.priceLabel,
-    params.productUrl
-  );
-  try {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (params.token) {
-      headers.Authorization = `Bearer ${params.token}`;
-    }
-    await fetch(
-      `${getApiBaseUrl()}/api/stores/public/${encodeURIComponent(params.storeSlug)}/orders`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          product_id: params.productId,
-          total: params.priceNumber,
-          customer_name: params.customerName?.trim() || undefined,
-          customer_phone: params.customerPhone?.trim() || undefined,
-        }),
-      }
-    );
-  } catch {
-    /* still open WhatsApp so the customer can complete the sale */
+): Promise<{ ok: boolean; error?: string }> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (params.token) {
+    headers.Authorization = `Bearer ${params.token}`;
   }
-  window.open(wa, "_blank", "noopener,noreferrer");
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBaseUrl()}/api/orders`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        store_id: params.storeId,
+        items: [
+          {
+            product_id: params.productId,
+            quantity: 1,
+            price: params.priceNumber,
+            name: params.productName,
+          },
+        ],
+        total: params.priceNumber,
+      }),
+    });
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Network error",
+    };
+  }
+  if (!res.ok) {
+    let msg = res.statusText;
+    try {
+      const j = (await res.json()) as { error?: unknown };
+      if (typeof j.error === "string") msg = j.error;
+    } catch {
+      /* ignore */
+    }
+    return { ok: false, error: msg };
+  }
+  const data = (await res.json()) as { order_id: string };
+  const orderCode = data.order_id;
+  const message = [
+    "Salaan 👋,",
+    "",
+    `Waxaan rabaa alaabtan: ${params.productName}`,
+    `Qiimaha: ${formatPrice(params.priceNumber)}`,
+    `Link: ${params.productUrl}`,
+    "",
+    `Order ID: ${orderCode}`,
+    "",
+    "Fadlan ii soo xaqiiji dalabkan.",
+  ].join("\n");
+  const waUrl = buildWhatsAppMessageUrl(params.whatsapp, message);
+  window.open(waUrl, "_blank", "noopener,noreferrer");
+  return { ok: true };
 }
