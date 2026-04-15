@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "npx --yes concurrently@^9.1.2 -n api,web -c blue,green \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "dev:api": "npm run dev --prefix backend",
-    "dev:web": "npm run dev --prefix frontend"
+    "dev:web": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend"
   }
 }
