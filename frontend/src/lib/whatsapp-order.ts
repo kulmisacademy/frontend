@@ -1,9 +1,14 @@
 import { getApiBaseUrl } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { buildWhatsAppMessageUrl } from "@/lib/whatsapp";
+import {
+  parseOrderCodeFromJson,
+  readOrderApiError,
+} from "@/lib/whatsapp-cart";
 
 type OpenProductWaOrderParams = {
   storeId: string;
+  storeSlug: string;
   productId: string;
   whatsapp: string;
   productName: string;
@@ -12,7 +17,7 @@ type OpenProductWaOrderParams = {
   token?: string | null;
 };
 
-/** Saves order via POST /api/orders, then opens WhatsApp with order id. */
+/** Saves order via POST /api/orders (fallback: public store orders), then opens WhatsApp. */
 export async function openWhatsAppProductOrder(
   params: OpenProductWaOrderParams
 ): Promise<{ ok: boolean; error?: string }> {
@@ -22,23 +27,26 @@ export async function openWhatsAppProductOrder(
   if (params.token) {
     headers.Authorization = `Bearer ${params.token}`;
   }
+  const base = getApiBaseUrl();
+  const primaryBody = JSON.stringify({
+    store_id: params.storeId,
+    items: [
+      {
+        product_id: params.productId,
+        quantity: 1,
+        price: params.priceNumber,
+        name: params.productName,
+      },
+    ],
+    total: params.priceNumber,
+  });
+
   let res: Response;
   try {
-    res = await fetch(`${getApiBaseUrl()}/api/orders`, {
+    res = await fetch(`${base}/api/orders`, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        store_id: params.storeId,
-        items: [
-          {
-            product_id: params.productId,
-            quantity: 1,
-            price: params.priceNumber,
-            name: params.productName,
-          },
-        ],
-        total: params.priceNumber,
-      }),
+      body: primaryBody,
     });
   } catch (e) {
     return {
@@ -46,18 +54,43 @@ export async function openWhatsAppProductOrder(
       error: e instanceof Error ? e.message : "Network error",
     };
   }
-  if (!res.ok) {
-    let msg = res.statusText;
+
+  if (res.status === 404 && params.storeSlug) {
     try {
-      const j = (await res.json()) as { error?: unknown };
-      if (typeof j.error === "string") msg = j.error;
-    } catch {
-      /* ignore */
+      res = await fetch(
+        `${base}/api/stores/public/${encodeURIComponent(params.storeSlug)}/orders`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            product_id: params.productId,
+            total: params.priceNumber,
+          }),
+        }
+      );
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : "Network error",
+      };
     }
-    return { ok: false, error: msg };
   }
-  const data = (await res.json()) as { order_id: string };
-  const orderCode = data.order_id;
+
+  if (!res.ok) {
+    return { ok: false, error: await readOrderApiError(res) };
+  }
+
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    return { ok: false, error: "Invalid response from server" };
+  }
+  const orderCode = parseOrderCodeFromJson(data);
+  if (!orderCode) {
+    return { ok: false, error: "Order saved but response had no order id." };
+  }
+
   const message = [
     "Salaan 👋,",
     "",

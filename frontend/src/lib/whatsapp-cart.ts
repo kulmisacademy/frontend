@@ -29,10 +29,44 @@ export function buildCartWhatsAppMessage(
 
 type OpenCartWaParams = {
   storeId: string;
+  /** Used if POST /api/orders is missing on the server (older Railway deploy). */
+  storeSlug: string;
   whatsapp: string;
   lines: CartWhatsAppLine[];
   token?: string | null;
 };
+
+export async function readOrderApiError(res: Response): Promise<string> {
+  let msg = (res.statusText || "").trim();
+  try {
+    const j = (await res.json()) as { error?: unknown };
+    if (typeof j.error === "string" && j.error.trim()) msg = j.error.trim();
+  } catch {
+    /* ignore */
+  }
+  if (!msg) msg = `Request failed (${res.status})`;
+  if (res.status === 404) {
+    msg = `${msg} Deploy the latest backend (includes POST /api/orders) or the app will use a fallback.`;
+  }
+  return msg;
+}
+
+export function parseOrderCodeFromJson(json: unknown): string | null {
+  if (!json || typeof json !== "object") return null;
+  const j = json as Record<string, unknown>;
+  if (typeof j.order_id === "string" && j.order_id.trim()) return j.order_id.trim();
+  const o = j.order;
+  if (o && typeof o === "object") {
+    const row = o as Record<string, unknown>;
+    if (typeof row.order_code === "string" && row.order_code.trim()) {
+      return row.order_code.trim();
+    }
+    if (typeof row.id === "string") {
+      return `REF-${row.id.replace(/-/g, "").slice(0, 10).toUpperCase()}`;
+    }
+  }
+  return null;
+}
 
 export type WhatsAppCartResult =
   | { ok: true; orderCode: string }
@@ -61,16 +95,19 @@ export async function openWhatsAppCartOrder(
   if (params.token) {
     headers.Authorization = `Bearer ${params.token}`;
   }
+  const base = getApiBaseUrl();
+  const bodyPrimary = JSON.stringify({
+    store_id: params.storeId,
+    items,
+    total,
+  });
+
   let res: Response;
   try {
-    res = await fetch(`${getApiBaseUrl()}/api/orders`, {
+    res = await fetch(`${base}/api/orders`, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        store_id: params.storeId,
-        items,
-        total,
-      }),
+      body: bodyPrimary,
     });
   } catch (e) {
     return {
@@ -78,18 +115,49 @@ export async function openWhatsAppCartOrder(
       error: e instanceof Error ? e.message : "Network error",
     };
   }
-  if (!res.ok) {
-    let msg = res.statusText;
+
+  if (res.status === 404 && params.storeSlug) {
+    const items_summary = params.lines
+      .map((l) => `${l.name} × ${l.quantity}`)
+      .join("; ");
+    const products = params.lines.map((l) => ({
+      product_id: l.id,
+      name: l.name,
+      quantity: l.quantity,
+      price: l.price,
+    }));
     try {
-      const j = (await res.json()) as { error?: unknown };
-      if (typeof j.error === "string") msg = j.error;
-    } catch {
-      /* ignore */
+      res = await fetch(
+        `${base}/api/stores/public/${encodeURIComponent(params.storeSlug)}/orders`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ items_summary, total, products }),
+        }
+      );
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : "Network error",
+      };
     }
+  }
+
+  if (!res.ok) {
+    const msg = await readOrderApiError(res);
     return { ok: false, error: msg };
   }
-  const data = (await res.json()) as { order_id: string };
-  const orderCode = data.order_id;
+
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    return { ok: false, error: "Invalid response from server" };
+  }
+  const orderCode = parseOrderCodeFromJson(data);
+  if (!orderCode) {
+    return { ok: false, error: "Order saved but response had no order id." };
+  }
   const text = buildCartWhatsAppMessage(params.lines, orderCode);
   const waUrl = buildWhatsAppMessageUrl(params.whatsapp, text);
   window.open(waUrl, "_blank", "noopener,noreferrer");

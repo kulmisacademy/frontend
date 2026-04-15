@@ -21,6 +21,7 @@ export function ProductDetailActions({ product }: { product: Product }) {
     try {
       const r = await openWhatsAppProductOrder({
         storeId: product.storeId,
+        storeSlug: product.storeSlug,
         productId: product.id,
         whatsapp: product.whatsapp,
         productName: product.name,

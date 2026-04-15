@@ -73,6 +73,7 @@ export function CartPageClient() {
     try {
       const r = await openWhatsAppCartOrder({
         storeId: first.storeId,
+        storeSlug: first.storeSlug,
         whatsapp: first.whatsapp,
         lines: items.map(({ line, product }) => ({
           id: product.id,
