@@ -21,25 +21,45 @@ function isBrowserNetworkFailure(err: unknown): boolean {
   );
 }
 
+export type UnreachableApiMessageKind = "default" | "multipart";
+
 /**
- * When `fetch` fails before any HTTP response (wrong URL, CORS, offline,
- * `ERR_CONNECTION_RESET`, etc.).
+ * When `fetch` fails before any HTTP response. Use `multipart` for file uploads:
+ * the same browser error (`Failed to fetch`) often means HTTP/2 or mid-upload
+ * drops (`ERR_HTTP2_PING_FAILED`), not a wrong API URL.
  */
-export function describeUnreachableApiError(): string {
+export function describeUnreachableApiError(
+  kind: UnreachableApiMessageKind = "default"
+): string {
   const api = getApiBaseUrl();
   if (typeof window === "undefined") {
     return `Cannot reach the API at ${api}.`;
   }
   const here = window.location.origin;
   const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(here);
-  return isLocal
-    ? `Cannot reach the API at ${api}. Start the backend and set NEXT_PUBLIC_API_URL (e.g. http://localhost:4000).`
-    : `Cannot reach the API at ${api}. Confirm the API is running and NEXT_PUBLIC_API_URL is correct; set FRONTEND_URL on the API to ${here} (no trailing slash) for CORS. For uploads, use images under 5 MB each; if errors continue, your host may need a higher request body limit.`;
+  if (isLocal) {
+    return `Cannot reach the API at ${api}. Start the backend and set NEXT_PUBLIC_API_URL (e.g. http://localhost:4000).`;
+  }
+  if (kind === "multipart") {
+    return (
+      `Upload did not finish — the connection dropped before the server responded ` +
+      `(Chrome may show ERR_HTTP2_PING_FAILED; the app only sees “Failed to fetch”). ` +
+      `Try saving without choosing new logo or banner files. If that works, use smaller images (under 5 MB each) or compress PNGs. ` +
+      `If even text-only save fails, open ${api}/health in a new tab and set FRONTEND_URL on the API to ${here} (no trailing slash) for CORS.`
+    );
+  }
+  return (
+    `Cannot reach the API at ${api}. Confirm it is running and NEXT_PUBLIC_API_URL is correct; ` +
+    `set FRONTEND_URL on the API to ${here} (no trailing slash) for CORS.`
+  );
 }
 
-function rethrowFetchFailure(err: unknown): never {
+function rethrowFetchFailure(
+  err: unknown,
+  kind: UnreachableApiMessageKind = "default"
+): never {
   if (isBrowserNetworkFailure(err)) {
-    throw new Error(describeUnreachableApiError());
+    throw new Error(describeUnreachableApiError(kind));
   }
   throw err instanceof Error ? err : new Error(String(err));
 }
@@ -115,7 +135,7 @@ export async function apiPostForm<T>(
       credentials: "omit",
     });
   } catch (e) {
-    rethrowFetchFailure(e);
+    rethrowFetchFailure(e, "multipart");
   }
   const text = await res.text();
   let data: unknown = null;
