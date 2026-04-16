@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/context/auth-context";
-import { apiFetch, getApiBaseUrl } from "@/lib/api";
+import {
+  apiFetch,
+  apiPostForm,
+  VENDOR_STORE_IMAGE_MAX_BYTES,
+} from "@/lib/api";
 import { SOMALIA_REGIONS, capitalForRegion } from "@/lib/somalia-regions";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +19,7 @@ export default function DashboardSettingsPage() {
   const router = useRouter();
   const { user, loading, token, refreshUser } = useAuth();
   const [busy, setBusy] = React.useState(false);
+  const [loadErr, setLoadErr] = React.useState<string | null>(null);
   const [err, setErr] = React.useState<string | null>(null);
   const [ok, setOk] = React.useState<string | null>(null);
 
@@ -33,6 +38,7 @@ export default function DashboardSettingsPage() {
     if (!token || user?.role !== "vendor") return;
     let cancelled = false;
     (async () => {
+      setLoadErr(null);
       try {
         const data = await apiFetch<{ store: Record<string, unknown> }>(
           "/api/vendor/store",
@@ -49,8 +55,10 @@ export default function DashboardSettingsPage() {
         setDescription(s.description || "");
         setWhatsapp(s.whatsapp_phone || "");
         if (s.location?.region) setRegion(s.location.region);
-      } catch {
-        /* ignore */
+      } catch (e) {
+        if (!cancelled) {
+          setLoadErr(e instanceof Error ? e.message : "Could not load store.");
+        }
       }
     })();
     return () => {
@@ -67,6 +75,17 @@ export default function DashboardSettingsPage() {
     setErr(null);
     setOk(null);
     try {
+      if (logo && logo.size > VENDOR_STORE_IMAGE_MAX_BYTES) {
+        throw new Error(
+          `Logo must be ${VENDOR_STORE_IMAGE_MAX_BYTES / (1024 * 1024)} MB or smaller.`
+        );
+      }
+      if (banner && banner.size > VENDOR_STORE_IMAGE_MAX_BYTES) {
+        throw new Error(
+          `Banner must be ${VENDOR_STORE_IMAGE_MAX_BYTES / (1024 * 1024)} MB or smaller.`
+        );
+      }
+
       const fd = new FormData();
       fd.append("store_name", storeName);
       fd.append("description", description);
@@ -77,26 +96,11 @@ export default function DashboardSettingsPage() {
       if (logo) fd.append("logo", logo);
       if (banner) fd.append("banner", banner);
 
-      await fetch(
-        `${getApiBaseUrl()}/api/vendor/store`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
-        }
-      ).then(async (res) => {
-        const text = await res.text();
-        if (!res.ok) {
-          try {
-            const j = JSON.parse(text) as { error?: string };
-            throw new Error(j.error || res.statusText);
-          } catch (e) {
-            if (e instanceof Error && e.message !== "[object Object]")
-              throw e;
-            throw new Error(text || res.statusText);
-          }
-        }
-      });
+      await apiPostForm<{ store: Record<string, unknown> }>(
+        "/api/vendor/store",
+        fd,
+        { token }
+      );
 
       setOk("Store updated.");
       setLogo(null);
@@ -133,6 +137,11 @@ export default function DashboardSettingsPage() {
         </Button>
       </div>
 
+      {loadErr ? (
+        <p className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {loadErr}
+        </p>
+      ) : null}
       {err ? (
         <p className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {err}
@@ -196,6 +205,9 @@ export default function DashboardSettingsPage() {
         </label>
         <label className="space-y-2">
           <span className="text-sm font-medium">New logo (optional)</span>
+          <span className="block text-xs text-muted-foreground">
+            Max 5 MB. Resize large images before uploading.
+          </span>
           <Input
             type="file"
             accept="image/*"
@@ -205,6 +217,9 @@ export default function DashboardSettingsPage() {
         </label>
         <label className="space-y-2">
           <span className="text-sm font-medium">Banner image (optional)</span>
+          <span className="block text-xs text-muted-foreground">
+            Max 5 MB. Very large files may fail if your host limits request size.
+          </span>
           <Input
             type="file"
             accept="image/*"

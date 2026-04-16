@@ -3,9 +3,45 @@ const DEFAULT_API = "http://localhost:4000";
 /** RSC / build: avoid hanging when `NEXT_PUBLIC_API_URL` points at an unreachable host. */
 export const SERVER_FETCH_TIMEOUT_MS = 12_000;
 
+/** Matches backend multer limit for store logo/banner (`vendor.routes.js`). */
+export const VENDOR_STORE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+
 export function getApiBaseUrl(): string {
   const url = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
   return url || DEFAULT_API;
+}
+
+function isBrowserNetworkFailure(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const m = err.message;
+  return (
+    m === "Failed to fetch" ||
+    m.includes("NetworkError") ||
+    m.includes("Load failed")
+  );
+}
+
+/**
+ * When `fetch` fails before any HTTP response (wrong URL, CORS, offline,
+ * `ERR_CONNECTION_RESET`, etc.).
+ */
+export function describeUnreachableApiError(): string {
+  const api = getApiBaseUrl();
+  if (typeof window === "undefined") {
+    return `Cannot reach the API at ${api}.`;
+  }
+  const here = window.location.origin;
+  const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(here);
+  return isLocal
+    ? `Cannot reach the API at ${api}. Start the backend and set NEXT_PUBLIC_API_URL (e.g. http://localhost:4000).`
+    : `Cannot reach the API at ${api}. Confirm the API is running and NEXT_PUBLIC_API_URL is correct; set FRONTEND_URL on the API to ${here} (no trailing slash) for CORS. For uploads, use images under 5 MB each; if errors continue, your host may need a higher request body limit.`;
+}
+
+function rethrowFetchFailure(err: unknown): never {
+  if (isBrowserNetworkFailure(err)) {
+    throw new Error(describeUnreachableApiError());
+  }
+  throw err instanceof Error ? err : new Error(String(err));
 }
 
 type FetchOptions = RequestInit & { token?: string | null };
@@ -22,11 +58,16 @@ export async function apiFetch<T>(
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
-  const res = await fetch(`${getApiBaseUrl()}${path}`, {
-    ...rest,
-    headers,
-    credentials: "omit",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBaseUrl()}${path}`, {
+      ...rest,
+      headers,
+      credentials: "omit",
+    });
+  } catch (e) {
+    rethrowFetchFailure(e);
+  }
   const text = await res.text();
   let data: unknown = null;
   if (text) {
@@ -53,11 +94,29 @@ export async function apiFetch<T>(
   return data as T;
 }
 
-export async function apiPostForm<T>(path: string, form: FormData): Promise<T> {
-  const res = await fetch(`${getApiBaseUrl()}${path}`, {
-    method: "POST",
-    body: form,
-  });
+export type ApiPostFormOptions = { token?: string | null };
+
+export async function apiPostForm<T>(
+  path: string,
+  form: FormData,
+  options: ApiPostFormOptions = {}
+): Promise<T> {
+  const { token } = options;
+  const headers = new Headers();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBaseUrl()}${path}`, {
+      method: "POST",
+      body: form,
+      headers,
+      credentials: "omit",
+    });
+  } catch (e) {
+    rethrowFetchFailure(e);
+  }
   const text = await res.text();
   let data: unknown = null;
   if (text) {

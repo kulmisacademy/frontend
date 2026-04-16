@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { MARKETING_PAGE_PY, PageContainer } from "@/components/ui/section";
 import { PasswordInput } from "@/components/password-input";
 import { Spinner } from "@/components/ui/spinner";
-import { apiPostForm, getApiBaseUrl } from "@/lib/api";
+import { apiPostForm } from "@/lib/api";
 import { SOMALIA_REGIONS, capitalForRegion } from "@/lib/somalia-regions";
 import { useAuth } from "@/context/auth-context";
 import type { AuthUser } from "@/lib/auth-storage";
@@ -85,26 +85,13 @@ export function RegisterVendorClient() {
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
-      const msg =
+      setError(
         err instanceof Error
           ? err.message
           : typeof err === "string"
             ? err
-            : "Registration failed";
-      if (msg === "Failed to fetch" || msg.includes("NetworkError")) {
-        const api = getApiBaseUrl();
-        const here =
-          typeof window !== "undefined" ? window.location.origin : "";
-        const isLocal =
-          /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(here);
-        setError(
-          isLocal
-            ? `Cannot reach the API at ${api}. Start the backend and set NEXT_PUBLIC_API_URL (e.g. http://localhost:4000).`
-            : `Cannot reach the API at ${api}. On Vercel set NEXT_PUBLIC_API_URL to your Railway API URL. On Railway set FRONTEND_URL=${here} (no trailing slash) so CORS allows ${here}.`
-        );
-      } else {
-        setError(msg);
-      }
+            : "Registration failed"
+      );
     } finally {
       setLoading(false);
     }

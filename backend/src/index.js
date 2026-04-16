@@ -217,6 +217,11 @@ app.get("/health/db", async (_req, res) => {
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
+  if (err && err.code === "LIMIT_FILE_SIZE") {
+    return res.status(413).json({
+      error: "File too large (max 5 MB per logo or banner image).",
+    });
+  }
   console.error(err);
   const status =
     err && typeof err.status === "number" && err.status >= 400 && err.status < 600
