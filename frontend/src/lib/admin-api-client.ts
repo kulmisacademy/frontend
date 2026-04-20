@@ -35,12 +35,25 @@ export async function adminFetch<T>(
   const data = parseJsonSafe(text) as {
     error?: string;
     message?: string;
+    detail?: string;
+    hint?: string;
+    details?: string;
   } | null;
   if (!res.ok) {
-    const msg =
+    const base =
       (typeof data?.error === "string" && data.error) ||
       (typeof data?.message === "string" && data.message) ||
       `Request failed (${res.status})`;
+    const bits = [
+      typeof data?.detail === "string" && data.detail.trim()
+        ? data.detail.trim()
+        : "",
+      typeof data?.details === "string" && data.details.trim()
+        ? data.details.trim()
+        : "",
+      typeof data?.hint === "string" && data.hint.trim() ? data.hint.trim() : "",
+    ].filter(Boolean);
+    const msg = bits.length ? `${base} — ${bits.join(" · ")}` : base;
     throw new Error(msg);
   }
   return data as T;

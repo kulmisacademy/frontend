@@ -36,13 +36,33 @@ function storeUpdateErrorResponse(e) {
     e && typeof e === "object" && "details" in e && e.details != null
       ? String(e.details)
       : undefined;
-  if (code === "23514") {
+  const combined = [message, details, hint].filter(Boolean).join(" ");
+  const isCheckViolation =
+    code === "23514" ||
+    /\b23514\b/.test(combined) ||
+    /violates check constraint/i.test(combined) ||
+    /stores_plan_check/i.test(combined);
+  if (isCheckViolation) {
     return {
       status: 400,
       body: {
         error:
           "This database still restricts stores.plan to free/premium only. Run migration 012_stores_plan_slug_dynamic.sql (or full 006+) in Supabase, then retry.",
-        code,
+        code: code || "23514",
+        message,
+        hint,
+        details,
+      },
+    };
+  }
+  const isFkViolation =
+    code === "23503" || /\b23503\b/.test(combined) || /foreign key/i.test(combined);
+  if (isFkViolation) {
+    return {
+      status: 400,
+      body: {
+        error: "Database rejected the update (invalid plan or reference).",
+        code: code || "23503",
         message,
         hint,
         details,

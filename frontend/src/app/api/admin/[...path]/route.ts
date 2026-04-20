@@ -42,26 +42,38 @@ async function proxy(
       ? undefined
       : await req.arrayBuffer();
 
-  const upstream = await fetch(target, {
-    method: req.method,
-    headers: {
-      Authorization: `Bearer ${bearer}`,
-      ...(req.headers.get("content-type")
-        ? { "content-type": req.headers.get("content-type")! }
-        : {}),
-    },
-    body: body && body.byteLength > 0 ? Buffer.from(body) : undefined,
-    signal: AbortSignal.timeout(120_000),
-  });
+  try {
+    const upstream = await fetch(target, {
+      method: req.method,
+      headers: {
+        Authorization: `Bearer ${bearer}`,
+        ...(req.headers.get("content-type")
+          ? { "content-type": req.headers.get("content-type")! }
+          : {}),
+      },
+      body: body && body.byteLength > 0 ? Buffer.from(body) : undefined,
+      signal: AbortSignal.timeout(120_000),
+    });
 
-  const text = await upstream.text();
-  return new NextResponse(text, {
-    status: upstream.status,
-    headers: {
-      "content-type":
-        upstream.headers.get("content-type") ?? "application/json",
-    },
-  });
+    const text = await upstream.text();
+    return new NextResponse(text, {
+      status: upstream.status,
+      headers: {
+        "content-type":
+          upstream.headers.get("content-type") ?? "application/json",
+      },
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json(
+      {
+        error: "Admin API proxy could not reach the backend",
+        detail: msg,
+        target: process.env.NODE_ENV !== "production" ? target : undefined,
+      },
+      { status: 502 }
+    );
+  }
 }
 
 export const GET = proxy;
