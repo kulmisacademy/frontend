@@ -423,7 +423,17 @@ async function listOrders(req, res) {
   try {
     const store = await getStoreForVendor(req.user.id);
     if (!store) return res.status(404).json({ error: "No store" });
-    const raw = await orderModel.listByStoreId(store.id);
+    const q = req.query || {};
+    const datePreset = typeof q.date === "string" ? q.date : "all";
+    const status = typeof q.status === "string" ? q.status : "all";
+    /** Default 500 to mirror prior unlimited list for active stores (capped by model max). */
+    const limitRaw = q.limit != null ? parseInt(String(q.limit), 10) : 500;
+    const raw = await orderModel.listFiltered({
+      storeId: store.id,
+      datePreset,
+      status,
+      limit: limitRaw,
+    });
     const orders = await orderModel.enrichOrdersWithStoresAndProducts(raw);
     res.json({ orders });
   } catch (e) {

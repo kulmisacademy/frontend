@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch } from "@/lib/api";
+import { useDashboardI18n } from "@/context/dashboard-i18n-context";
+import { RecentOrdersSnippet } from "@/components/dashboard/recent-orders-snippet";
 
 type Overview = {
   store: {
@@ -46,6 +48,7 @@ type Overview = {
 export default function VendorDashboardPage() {
   const router = useRouter();
   const { user, store, loading, token } = useAuth();
+  const { t } = useDashboardI18n();
   const [data, setData] = React.useState<Overview | null>(null);
   const [loadErr, setLoadErr] = React.useState<string | null>(null);
 
@@ -64,7 +67,9 @@ export default function VendorDashboardPage() {
         if (!cancelled) setData(o);
       } catch (e) {
         if (!cancelled) {
-          setLoadErr(e instanceof Error ? e.message : "Could not load dashboard");
+          setLoadErr(
+            e instanceof Error ? e.message : "Could not load dashboard"
+          );
         }
       }
     })();
@@ -83,26 +88,27 @@ export default function VendorDashboardPage() {
 
   const slug = data?.store?.slug || store?.slug;
   const stats = data?.stats;
+  const storeName = data?.store?.store_name || store?.store_name;
 
   const cards = [
     {
-      label: "Products",
+      labelKey: "vendorDashboard.cardProducts",
       value: stats?.productCount ?? "—",
       icon: Package,
     },
     {
-      label: "Orders",
+      labelKey: "vendorDashboard.cardOrders",
       value: stats?.orderCount ?? "—",
       icon: ShoppingBag,
     },
     {
-      label: "Messages",
-      value: "Soon",
+      labelKey: "vendorDashboard.cardMessages",
+      value: t("vendorDashboard.soon"),
       icon: MessageCircle,
     },
     {
-      label: "Revenue",
-      value: "Soon",
+      labelKey: "vendorDashboard.cardRevenue",
+      value: t("vendorDashboard.soon"),
       icon: TrendingUp,
     },
   ];
@@ -112,12 +118,12 @@ export default function VendorDashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading text-3xl font-bold tracking-tight">
-            Vendor dashboard
+            {t("vendorDashboard.title")}
           </h1>
           <p className="mt-2 text-muted-foreground">
-            {data?.store?.store_name || store?.store_name
-              ? `${data?.store?.store_name || store?.store_name} — overview`
-              : "Manage your storefront"}
+            {storeName
+              ? `${storeName} — ${t("vendorDashboard.overviewFor")}`
+              : t("vendorDashboard.subtitleManage")}
           </p>
           {loadErr ? (
             <p className="mt-2 text-sm text-destructive">{loadErr}</p>
@@ -128,12 +134,12 @@ export default function VendorDashboardPage() {
             <Button variant="outline" className="rounded-2xl" asChild>
               <Link href={`/store/${slug}`} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="size-4" />
-                View store
+                {t("vendorDashboard.viewStore")}
               </Link>
             </Button>
           ) : null}
           <Button variant="outline" className="rounded-2xl" asChild>
-            <Link href="/marketplace">Marketplace</Link>
+            <Link href="/marketplace">{t("vendorDashboard.marketplace")}</Link>
           </Button>
         </div>
       </div>
@@ -141,12 +147,12 @@ export default function VendorDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((s) => (
           <div
-            key={s.label}
+            key={s.labelKey}
             className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
           >
             <s.icon className="size-5 text-primary" />
             <p className="mt-3 font-heading text-3xl font-bold">{s.value}</p>
-            <p className="text-sm text-muted-foreground">{s.label}</p>
+            <p className="text-sm text-muted-foreground">{t(s.labelKey)}</p>
           </div>
         ))}
       </div>
@@ -156,54 +162,66 @@ export default function VendorDashboardPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Plan
+                {t("vendorDashboard.plan")}
               </p>
               <p className="mt-1 font-heading text-xl font-bold capitalize">
                 {data.store.plan ?? "free"}
                 {data.store.verified ? (
                   <span className="ml-2 text-sm font-normal text-primary">
-                    · Verified
+                    · {t("vendorDashboard.verified")}
                   </span>
                 ) : null}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Products {data.plan.usage.products}/{data.plan.limits.maxProducts}
+                {t("vendorDashboard.usageProducts")}{" "}
+                {data.plan.usage.products}/{data.plan.limits.maxProducts}
                 {" · "}
-                Videos {data.plan.usage.videos}/{data.plan.limits.maxVideos}
+                {t("vendorDashboard.usageVideos")}{" "}
+                {data.plan.usage.videos}/{data.plan.limits.maxVideos}
                 {" · "}
-                AI{" "}
+                {t("vendorDashboard.usageAi")}{" "}
                 {data.plan.limits.maxAiGenerations == null
-                  ? `${data.plan.usage.aiGenerations} (unlimited)`
+                  ? `${data.plan.usage.aiGenerations} ${t("vendorDashboard.unlimitedAi")}`
                   : `${data.plan.usage.aiGenerations}/${data.plan.limits.maxAiGenerations}`}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" className="rounded-2xl" asChild>
-                <Link href="/dashboard/plan">My plan</Link>
+                <Link href="/dashboard/plan">{t("vendorDashboard.myPlan")}</Link>
               </Button>
               <Button className="rounded-2xl" asChild>
-                <Link href="/dashboard/plans">Compare plans</Link>
+                <Link href="/dashboard/plans">
+                  {t("vendorDashboard.comparePlans")}
+                </Link>
               </Button>
             </div>
           </div>
         </div>
       ) : null}
 
+      <RecentOrdersSnippet
+        variant="vendor"
+        token={token}
+        enabled={user?.role === "vendor" && !!token}
+      />
+
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-border/80 bg-muted/20 p-6">
-          <h2 className="font-heading text-lg font-semibold">Quick actions</h2>
+          <h2 className="font-heading text-lg font-semibold">
+            {t("vendorDashboard.quickActions")}
+          </h2>
           <ul className="mt-4 space-y-2 text-sm">
             <li>
               <Link href="/dashboard/products" className="text-primary hover:underline">
-                Manage products
+                {t("vendorDashboard.manageProducts")}
               </Link>
             </li>
             <li>
               <Link href="/dashboard/orders" className="text-primary hover:underline">
-                Order requests
+                {t("vendorDashboard.orderRequests")}
                 {stats?.pendingOrders != null && stats.pendingOrders > 0 ? (
                   <span className="ml-1 text-muted-foreground">
-                    ({stats.pendingOrders} pending)
+                    ({stats.pendingOrders} {t("vendorDashboard.pendingCount")})
                   </span>
                 ) : null}
               </Link>
@@ -213,19 +231,18 @@ export default function VendorDashboardPage() {
                 href="/dashboard/messages"
                 className="text-primary hover:underline"
               >
-                Messages
+                {t("vendorDashboard.messages")}
               </Link>
             </li>
             <li>
               <Link href="/dashboard/settings" className="text-primary hover:underline">
-                Store settings
+                {t("vendorDashboard.storeSettings")}
               </Link>
             </li>
           </ul>
         </div>
         <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-          Revenue analytics will connect here as your sales grow. For now, use
-          WhatsApp for instant buyer conversations.
+          {t("vendorDashboard.revenueNote")}
         </div>
       </div>
     </div>

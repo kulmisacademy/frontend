@@ -26,34 +26,42 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
 import { useOptionalAdminSession } from "@/components/dashboard/admin-session-context";
+import {
+  DashboardI18nProvider,
+  useDashboardI18n,
+} from "@/context/dashboard-i18n-context";
 
 const STORAGE_KEY = "laas24-sidebar-collapsed";
 
 export type DashboardNavItem = {
   href: string;
-  label: string;
+  labelKey: string;
   icon: LucideIcon;
 };
 
 const vendorNav: DashboardNavItem[] = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/dashboard/products", label: "Products", icon: Package },
-  { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
-  { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
-  { href: "/dashboard/plan", label: "My Plan", icon: CreditCard },
-  { href: "/dashboard/plans", label: "Plans", icon: Sparkles },
-  { href: "/dashboard/settings", label: "Store settings", icon: Store },
+  { href: "/dashboard", labelKey: "shell.navOverview", icon: LayoutDashboard },
+  { href: "/dashboard/products", labelKey: "shell.navProducts", icon: Package },
+  { href: "/dashboard/orders", labelKey: "shell.navOrders", icon: ShoppingBag },
+  { href: "/dashboard/messages", labelKey: "shell.navMessages", icon: MessageSquare },
+  { href: "/dashboard/plan", labelKey: "shell.navMyPlan", icon: CreditCard },
+  { href: "/dashboard/plans", labelKey: "shell.navPlans", icon: Sparkles },
+  { href: "/dashboard/settings", labelKey: "shell.navStoreSettings", icon: Store },
 ];
 
 const adminNav: DashboardNavItem[] = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/stores", label: "Stores", icon: Store },
-  { href: "/admin/plans", label: "Plans", icon: Sparkles },
-  { href: "/admin/subscription-requests", label: "Upgrades", icon: CreditCard },
-  { href: "/admin/products", label: "Products", icon: Package },
-  { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin", labelKey: "shell.navAdminDashboard", icon: LayoutDashboard },
+  { href: "/admin/users", labelKey: "shell.navUsers", icon: Users },
+  { href: "/admin/stores", labelKey: "shell.navStores", icon: Store },
+  { href: "/admin/plans", labelKey: "shell.navPlansAdmin", icon: Sparkles },
+  {
+    href: "/admin/subscription-requests",
+    labelKey: "shell.navUpgrades",
+    icon: CreditCard,
+  },
+  { href: "/admin/products", labelKey: "shell.navProductsAdmin", icon: Package },
+  { href: "/admin/orders", labelKey: "shell.navOrdersAdmin", icon: ShoppingBag },
+  { href: "/admin/settings", labelKey: "shell.navSettings", icon: Settings },
 ];
 
 function NavLinks({
@@ -66,6 +74,7 @@ function NavLinks({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const { t } = useDashboardI18n();
   return (
     <nav className="flex flex-col gap-1 p-2">
       {items.map((item) => {
@@ -78,7 +87,7 @@ function NavLinks({
             key={item.href}
             href={item.href}
             onClick={onNavigate}
-            title={collapsed ? item.label : undefined}
+            title={collapsed ? t(item.labelKey) : undefined}
             className={cn(
               "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
               active
@@ -88,7 +97,7 @@ function NavLinks({
             )}
           >
             <item.icon className="size-5 shrink-0" aria-hidden />
-            {!collapsed ? <span>{item.label}</span> : null}
+            {!collapsed ? <span>{t(item.labelKey)}</span> : null}
           </Link>
         );
       })}
@@ -109,6 +118,7 @@ function SidebarColumn({
   onMobileNavigate?: () => void;
   className?: string;
 }) {
+  const { t } = useDashboardI18n();
   const items = variant === "vendor" ? vendorNav : adminNav;
   return (
     <div
@@ -131,7 +141,7 @@ function SidebarColumn({
             <span className="text-primary">LAAS24</span>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
             <span className="truncate text-base font-semibold">
-              {variant === "vendor" ? "Vendor" : "Admin"}
+              {variant === "vendor" ? t("shell.brandVendor") : t("shell.brandAdmin")}
             </span>
           </Link>
         ) : (
@@ -146,7 +156,9 @@ function SidebarColumn({
         <button
           type="button"
           className="hidden rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground lg:flex"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={
+            collapsed ? t("shell.expandSidebar") : t("shell.collapseSidebar")
+          }
           onClick={() => setCollapsed((c) => !c)}
         >
           {collapsed ? (
@@ -177,12 +189,140 @@ function SidebarColumn({
             collapsed && "justify-center px-0"
           )}
           asChild
-          title="Homepage"
+          title={t("shell.home")}
         >
           <Link href="/">
             <Home className="size-4 shrink-0" />
-            {!collapsed ? "Home" : null}
+            {!collapsed ? t("shell.home") : null}
           </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function MobileMenuBackdrop({ onClose }: { onClose: () => void }) {
+  const { t } = useDashboardI18n();
+  return (
+    <button
+      type="button"
+      className="fixed inset-0 z-50 bg-black/50 lg:hidden"
+      aria-label={t("shell.closeMenu")}
+      onClick={onClose}
+    />
+  );
+}
+
+function LangToggle() {
+  const { lang, setLang, t } = useDashboardI18n();
+  return (
+    <div
+      className="flex shrink-0 items-center gap-0.5 rounded-xl border border-border/80 bg-background/80 p-0.5 text-[11px] font-semibold"
+      role="group"
+      aria-label={t("shell.language")}
+    >
+      <button
+        type="button"
+        className={cn(
+          "rounded-lg px-2 py-1 transition-colors",
+          lang === "en"
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground hover:text-foreground"
+        )}
+        onClick={() => setLang("en")}
+      >
+        EN
+      </button>
+      <button
+        type="button"
+        className={cn(
+          "rounded-lg px-2 py-1 transition-colors",
+          lang === "so"
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground hover:text-foreground"
+        )}
+        onClick={() => setLang("so")}
+      >
+        SO
+      </button>
+    </div>
+  );
+}
+
+function MobileHeaderBar({
+  variant,
+  onMenuOpen,
+}: {
+  variant: "vendor" | "admin";
+  onMenuOpen: () => void;
+}) {
+  const { t } = useDashboardI18n();
+  return (
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border/80 bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden">
+      <button
+        type="button"
+        className="rounded-lg p-2 text-foreground hover:bg-muted"
+        aria-label={t("shell.openMenu")}
+        onClick={onMenuOpen}
+      >
+        <Menu className="size-6" />
+      </button>
+      <span className="font-heading font-semibold">
+        {variant === "vendor" ? t("shell.brandVendor") : t("shell.brandAdmin")}
+      </span>
+      <div className="ml-auto flex items-center gap-2">
+        <LangToggle />
+        <Button variant="ghost" size="sm" className="rounded-xl" asChild>
+          <Link href="/">{t("shell.home")}</Link>
+        </Button>
+      </div>
+    </header>
+  );
+}
+
+function DesktopTopBar({
+  variant,
+  adminEmail,
+  vendorEmail,
+  base,
+  onLogout,
+}: {
+  variant: "vendor" | "admin";
+  adminEmail: string | null | undefined;
+  vendorEmail: string | null | undefined;
+  base: string;
+  onLogout: () => void;
+}) {
+  const { t } = useDashboardI18n();
+  return (
+    <div className="hidden h-14 items-center justify-between gap-4 border-b border-border/80 px-6 lg:flex">
+      <p className="truncate text-sm text-muted-foreground">
+        {variant === "admin" && adminEmail ? (
+          <>
+            {t("shell.signedInAs")}{" "}
+            <span className="font-medium text-foreground">{adminEmail}</span>
+          </>
+        ) : vendorEmail ? (
+          <>
+            {t("shell.signedInAs")}{" "}
+            <span className="font-medium text-foreground">{vendorEmail}</span>
+          </>
+        ) : null}
+      </p>
+      <div className="flex items-center gap-2">
+        <LangToggle />
+        <Button variant="outline" size="sm" className="rounded-xl" asChild>
+          <Link href={base}>{t("shell.overview")}</Link>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="rounded-xl text-muted-foreground"
+          type="button"
+          onClick={() => void onLogout()}
+        >
+          <LogOut className="mr-1 size-4" />
+          {t("shell.signOut")}
         </Button>
       </div>
     </div>
@@ -264,35 +404,16 @@ export function DashboardAppShell({
   }
 
   return (
-    <div className="min-h-dvh bg-background">
-      {/* Mobile */}
-      <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border/80 bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden">
-        <button
-          type="button"
-          className="rounded-lg p-2 text-foreground hover:bg-muted"
-          aria-label="Open menu"
-          onClick={() => setMobileOpen(true)}
-        >
-          <Menu className="size-6" />
-        </button>
-        <span className="font-heading font-semibold">
-          {variant === "vendor" ? "Vendor" : "Admin"}
-        </span>
-        <div className="ml-auto">
-          <Button variant="ghost" size="sm" className="rounded-xl" asChild>
-            <Link href="/">Home</Link>
-          </Button>
-        </div>
-      </header>
+    <DashboardI18nProvider>
+      <div className="min-h-dvh bg-background">
+        <MobileHeaderBar
+          variant={variant}
+          onMenuOpen={() => setMobileOpen(true)}
+        />
 
       {mobileOpen ? (
         <>
-          <button
-            type="button"
-            className="fixed inset-0 z-50 bg-black/50 lg:hidden"
-            aria-label="Close menu"
-            onClick={() => setMobileOpen(false)}
-          />
+          <MobileMenuBackdrop onClose={() => setMobileOpen(false)} />
           <aside className="fixed left-0 top-0 z-[60] flex h-full w-[min(280px,88vw)] flex-col border-r border-border/80 shadow-2xl lg:hidden">
             <SidebarColumn
               variant={variant}
@@ -321,44 +442,20 @@ export function DashboardAppShell({
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="hidden h-14 items-center justify-between gap-4 border-b border-border/80 px-6 lg:flex">
-            <p className="truncate text-sm text-muted-foreground">
-              {variant === "admin" && adminSession?.user?.email ? (
-                <>
-                  Signed in as{" "}
-                  <span className="font-medium text-foreground">
-                    {adminSession.user.email}
-                  </span>
-                </>
-              ) : user?.email ? (
-                <>
-                  Signed in as{" "}
-                  <span className="font-medium text-foreground">{user.email}</span>
-                </>
-              ) : null}
-            </p>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="rounded-xl" asChild>
-                <Link href={base}>Overview</Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-xl text-muted-foreground"
-                type="button"
-                onClick={() => void handleLogout()}
-              >
-                <LogOut className="mr-1 size-4" />
-                Sign out
-              </Button>
-            </div>
-          </div>
+          <DesktopTopBar
+            variant={variant}
+            adminEmail={adminSession?.user?.email}
+            vendorEmail={user?.email}
+            base={base}
+            onLogout={handleLogout}
+          />
 
           <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
             <div className="mx-auto max-w-[1400px] min-w-0">{children}</div>
           </main>
         </div>
       </div>
-    </div>
+      </div>
+    </DashboardI18nProvider>
   );
 }

@@ -307,9 +307,31 @@ async function products(req, res) {
   }
 }
 
+function looksLikeUuid(s) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    s
+  );
+}
+
 async function orders(req, res) {
   try {
-    const raw = await orderModel.listAll(300);
+    const q = req.query || {};
+    const datePreset = typeof q.date === "string" ? q.date : "all";
+    const status = typeof q.status === "string" ? q.status : "all";
+    const limitRaw = q.limit != null ? parseInt(String(q.limit), 10) : 300;
+    let storeId =
+      typeof q.store_id === "string" && q.store_id.trim()
+        ? q.store_id.trim()
+        : null;
+    if (storeId && !looksLikeUuid(storeId)) {
+      storeId = null;
+    }
+    const raw = await orderModel.listFiltered({
+      storeId,
+      datePreset,
+      status,
+      limit: limitRaw,
+    });
     const orders = await orderModel.enrichOrdersWithStores(raw);
     res.json({ orders });
   } catch (e) {

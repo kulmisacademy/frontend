@@ -7,55 +7,44 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/auth-context";
+import { useDashboardI18n } from "@/context/dashboard-i18n-context";
+import { useDashboardOrdersQuery } from "@/hooks/use-dashboard-orders-query";
+import { OrderFiltersBar } from "@/components/dashboard/order-filters-bar";
+import {
+  DEFAULT_ORDER_FILTERS,
+  type OrderListFilters,
+} from "@/lib/order-filters";
 import { apiFetch } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-type OrderRow = {
-  id: string;
-  order_code?: string | null;
-  status: string;
-  customer_name: string | null;
-  customer_phone: string | null;
-  message: string | null;
-  items_summary: string | null;
-  total: number | null;
-  products?: unknown;
-  created_at: string;
-  product_id: string | null;
-  product_name: string | null;
-};
-
 export default function DashboardOrdersPage() {
   const router = useRouter();
   const { user, loading, token } = useAuth();
-  const [orders, setOrders] = React.useState<OrderRow[]>([]);
+  const { t } = useDashboardI18n();
+  const [filters, setFilters] = React.useState<OrderListFilters>(
+    DEFAULT_ORDER_FILTERS
+  );
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
+
+  const { orders, busy: loadingList, err: loadErr, reload } =
+    useDashboardOrdersQuery({
+      variant: "vendor",
+      token,
+      filters,
+      limit: 500,
+      enabled: !!token && !!user,
+    });
 
   React.useEffect(() => {
     if (!loading && !user) router.replace("/login?next=/dashboard/orders");
   }, [loading, user, router]);
 
-  const load = React.useCallback(async () => {
-    if (!token) return;
-    setBusy(true);
-    setErr(null);
-    try {
-      const data = await apiFetch<{ orders: OrderRow[] }>("/api/vendor/orders", {
-        token,
-      });
-      setOrders(data.orders);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Failed to load");
-    } finally {
-      setBusy(false);
-    }
-  }, [token]);
-
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    if (loadErr) setErr(loadErr);
+    else setErr(null);
+  }, [loadErr]);
 
   async function setStatus(
     id: string,
@@ -69,12 +58,23 @@ export default function DashboardOrdersPage() {
         body: JSON.stringify({ status }),
         token,
       });
-      await load();
+      await reload();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Update failed");
     } finally {
       setBusy(false);
     }
+  }
+
+  function orderStatusLabel(status: string) {
+    if (
+      status === "pending" ||
+      status === "approved" ||
+      status === "rejected"
+    ) {
+      return t(`status.${status}`);
+    }
+    return status;
   }
 
   function statusBadgeProps(s: string) {
@@ -89,6 +89,8 @@ export default function DashboardOrdersPage() {
     return { variant: "secondary" as const, className: undefined };
   }
 
+  const listBusy = loadingList || busy;
+
   if (loading || !user) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center py-20">
@@ -102,16 +104,22 @@ export default function DashboardOrdersPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold md:text-3xl">
-            Orders
+            {t("orders.title")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Approve or reject requests. Buyers can rate after approval.
+            {t("orders.vendorSubtitle")}
           </p>
         </div>
         <Button variant="outline" className="rounded-2xl" asChild>
-          <Link href="/dashboard">Back to overview</Link>
+          <Link href="/dashboard">{t("orders.backOverview")}</Link>
         </Button>
       </div>
+
+      <OrderFiltersBar
+        value={filters}
+        onChange={setFilters}
+        disabled={listBusy}
+      />
 
       {err ? (
         <p className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -135,7 +143,7 @@ export default function DashboardOrdersPage() {
                       statusBadgeProps(o.status).className
                     )}
                   >
-                    {o.status}
+                    {orderStatusLabel(o.status)}
                   </Badge>
                   {o.order_code ? (
                     <span className="font-mono text-sm font-semibold text-foreground">
@@ -159,7 +167,7 @@ export default function DashboardOrdersPage() {
                 ) : null}
                 {o.product_name ? (
                   <p className="mt-2 font-medium text-foreground">
-                    Product: {o.product_name}
+                    {t("orders.product")}: {o.product_name}
                   </p>
                 ) : null}
                 {o.message ? (
@@ -176,20 +184,20 @@ export default function DashboardOrdersPage() {
                       type="button"
                       size="sm"
                       className="rounded-xl"
-                      disabled={busy}
+                      disabled={listBusy}
                       onClick={() => void setStatus(o.id, "approved")}
                     >
-                      Approve
+                      {t("orders.approve")}
                     </Button>
                     <Button
                       type="button"
                       size="sm"
                       variant="destructive"
                       className="rounded-xl"
-                      disabled={busy}
+                      disabled={listBusy}
                       onClick={() => void setStatus(o.id, "rejected")}
                     >
-                      Reject
+                      {t("orders.reject")}
                     </Button>
                   </>
                 ) : (
@@ -198,10 +206,10 @@ export default function DashboardOrdersPage() {
                     size="sm"
                     variant="outline"
                     className="rounded-xl"
-                    disabled={busy}
+                    disabled={listBusy}
                     onClick={() => void setStatus(o.id, "pending")}
                   >
-                    Set pending
+                    {t("orders.setPending")}
                   </Button>
                 )}
               </div>
@@ -209,9 +217,9 @@ export default function DashboardOrdersPage() {
           </li>
         ))}
       </ul>
-      {orders.length === 0 && !busy ? (
+      {orders.length === 0 && !loadingList ? (
         <p className="mt-8 text-sm text-muted-foreground">
-          No orders yet. When buyers check out via WhatsApp, they appear here.
+          {t("orders.noOrders")} {t("orders.noOrdersHint")}
         </p>
       ) : null}
     </div>

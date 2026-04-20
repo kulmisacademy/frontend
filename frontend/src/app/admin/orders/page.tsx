@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { useAdminSession } from "@/components/dashboard/admin-session-context";
-import { adminFetch } from "@/lib/admin-api-client";
+import { useDashboardI18n } from "@/context/dashboard-i18n-context";
+import { useDashboardOrdersQuery } from "@/hooks/use-dashboard-orders-query";
+import { OrderFiltersBar } from "@/components/dashboard/order-filters-bar";
+import {
+  DEFAULT_ORDER_FILTERS,
+  type OrderListFilters,
+} from "@/lib/order-filters";
 import { cn } from "@/lib/utils";
 
 type OrderRow = {
@@ -26,27 +32,41 @@ type OrderRow = {
 
 export default function AdminOrdersPage() {
   const { user, loading } = useAdminSession();
-  const [orders, setOrders] = React.useState<OrderRow[]>([]);
-  const [busy, setBusy] = React.useState(false);
-  const [err, setErr] = React.useState<string | null>(null);
+  const { t } = useDashboardI18n();
+  const [filters, setFilters] = React.useState<OrderListFilters>(
+    DEFAULT_ORDER_FILTERS
+  );
 
-  const load = React.useCallback(async () => {
-    if (!user) return;
-    setBusy(true);
-    setErr(null);
-    try {
-      const data = await adminFetch<{ orders: OrderRow[] }>("/orders");
-      setOrders(data.orders);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Failed to load");
-    } finally {
-      setBusy(false);
+  const { orders, busy, err, reload } = useDashboardOrdersQuery({
+    variant: "admin",
+    token: null,
+    filters,
+    limit: 300,
+    enabled: !!user && !loading,
+  });
+
+  function orderStatusLabel(status: string) {
+    if (
+      status === "pending" ||
+      status === "approved" ||
+      status === "rejected"
+    ) {
+      return t(`status.${status}`);
     }
-  }, [user]);
+    return status;
+  }
 
-  React.useEffect(() => {
-    void load();
-  }, [load]);
+  function statusBadgeProps(s: string) {
+    if (s === "approved")
+      return { variant: "success" as const, className: undefined };
+    if (s === "rejected")
+      return {
+        variant: "secondary" as const,
+        className:
+          "border-destructive/40 bg-destructive/10 text-destructive dark:bg-destructive/15",
+      };
+    return { variant: "secondary" as const, className: undefined };
+  }
 
   if (loading || !user) {
     return (
@@ -60,12 +80,14 @@ export default function AdminOrdersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-heading text-3xl font-bold tracking-tight">
-          Orders
+          {t("orders.title")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          All order requests across stores (read-only).
+          {t("orders.adminSubtitle")}
         </p>
       </div>
+
+      <OrderFiltersBar value={filters} onChange={setFilters} disabled={busy} />
 
       {err ? (
         <p className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -79,7 +101,7 @@ export default function AdminOrdersPage() {
         </div>
       ) : orders.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
-          No orders yet.
+          {t("orders.noOrders")}
         </div>
       ) : (
         <ul className="space-y-4">
@@ -92,20 +114,13 @@ export default function AdminOrdersPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge
-                      variant={
-                        o.status === "approved"
-                          ? "success"
-                          : o.status === "rejected"
-                            ? "secondary"
-                            : "secondary"
-                      }
+                      variant={statusBadgeProps(o.status).variant}
                       className={cn(
                         "rounded-full capitalize",
-                        o.status === "rejected" &&
-                          "border-destructive/40 bg-destructive/10 text-destructive"
+                        statusBadgeProps(o.status).className
                       )}
                     >
-                      {o.status}
+                      {orderStatusLabel(o.status)}
                     </Badge>
                     {o.store_name ? (
                       <span className="text-sm font-medium">{o.store_name}</span>
@@ -130,7 +145,7 @@ export default function AdminOrdersPage() {
                   ) : null}
                   {o.total != null ? (
                     <p className="mt-2 text-sm font-medium">
-                      Total: {o.total}
+                      {t("orders.total")}: {o.total}
                     </p>
                   ) : null}
                 </div>
@@ -142,7 +157,7 @@ export default function AdminOrdersPage() {
                       rel="noopener noreferrer"
                     >
                       <ExternalLink className="mr-1 size-3.5" />
-                      Store
+                      {t("orders.store")}
                     </Link>
                   </Button>
                 ) : null}

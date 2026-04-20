@@ -124,15 +124,89 @@ async function listByCustomerPhone(phone) {
   );
 }
 
-async function listAll(limit = 200) {
+/** @typedef {{ gte?: string; lt?: string; lte?: string }} CreatedBounds */
+
+const ALLOWED_DATE_PRESETS = new Set(["all", "today", "week", "month"]);
+const ALLOWED_STATUS_FILTERS = new Set([
+  "all",
+  "pending",
+  "approved",
+  "rejected",
+]);
+
+/**
+ * @param {string} preset
+ * @returns {CreatedBounds | null}
+ */
+function createdAtBounds(preset) {
+  if (!preset || preset === "all" || !ALLOWED_DATE_PRESETS.has(preset)) {
+    return null;
+  }
+  const now = new Date();
+  if (preset === "today") {
+    const start = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    );
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 1);
+    return { gte: start.toISOString(), lt: end.toISOString() };
+  }
+  if (preset === "week") {
+    const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return { gte: start.toISOString(), lte: now.toISOString() };
+  }
+  if (preset === "month") {
+    const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return { gte: start.toISOString(), lte: now.toISOString() };
+  }
+  return null;
+}
+
+/**
+ * @param {{
+ *   storeId?: string | null;
+ *   datePreset?: string;
+ *   status?: string;
+ *   limit?: number;
+ * }} opts
+ */
+async function listFiltered(opts = {}) {
+  const {
+    storeId = null,
+    datePreset = "all",
+    status = "all",
+    limit: rawLimit = 200,
+  } = opts;
+  let limit = Number(rawLimit);
+  if (!Number.isFinite(limit) || limit < 1) limit = 200;
+  if (limit > 500) limit = 500;
+
+  const preset = ALLOWED_DATE_PRESETS.has(datePreset) ? datePreset : "all";
+  const st = ALLOWED_STATUS_FILTERS.has(status) ? status : "all";
+
   const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select("*")
+  let q = supabase.from(TABLE).select("*");
+  if (storeId) {
+    q = q.eq("store_id", storeId);
+  }
+  const bounds = createdAtBounds(preset);
+  if (bounds) {
+    if (bounds.gte) q = q.gte("created_at", bounds.gte);
+    if (bounds.lt) q = q.lt("created_at", bounds.lt);
+    if (bounds.lte) q = q.lte("created_at", bounds.lte);
+  }
+  if (st !== "all") {
+    q = q.eq("status", st);
+  }
+  const { data, error } = await q
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
   return data || [];
+}
+
+async function listAll(limit = 200) {
+  return listFiltered({ datePreset: "all", status: "all", limit });
 }
 
 async function countRows() {
@@ -185,6 +259,7 @@ module.exports = {
   listByCustomerPhone,
   enrichOrdersWithStores,
   enrichOrdersWithStoresAndProducts,
+  listFiltered,
   listAll,
   countRows,
 };
