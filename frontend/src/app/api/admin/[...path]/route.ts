@@ -55,9 +55,21 @@ async function proxy(
       signal: AbortSignal.timeout(120_000),
     });
 
+    const status = upstream.status;
+    // 204/304 and HEAD must not use a non-null body (fetch Response / spec).
+    if (status === 204 || status === 304 || req.method === "HEAD") {
+      const headers = new Headers();
+      const forward = ["etag", "cache-control", "last-modified", "content-type"];
+      for (const name of forward) {
+        const v = upstream.headers.get(name);
+        if (v) headers.set(name, v);
+      }
+      return new NextResponse(null, { status, headers });
+    }
+
     const text = await upstream.text();
     return new NextResponse(text, {
-      status: upstream.status,
+      status,
       headers: {
         "content-type":
           upstream.headers.get("content-type") ?? "application/json",
