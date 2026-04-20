@@ -62,6 +62,39 @@ async function stores(req, res) {
   }
 }
 
+/** GET /stores/:id — same shape as rows in GET /stores (owner + counts). */
+async function storeById(req, res) {
+  try {
+    const { id } = req.params;
+    const row = await storeModel.findById(id);
+    if (!row) {
+      return res.status(404).json({ error: "Store not found" });
+    }
+    const users = row.user_id
+      ? await userModel.findByIds([row.user_id])
+      : [];
+    const owner = users[0];
+    const { products: productCounts, videos: videoCounts } =
+      await productModel.aggregateCountsForStores([row.id]);
+    const store = {
+      ...row,
+      owner: owner
+        ? {
+            name: owner.name,
+            email: owner.email,
+            phone: owner.phone,
+          }
+        : null,
+      product_count: productCounts.get(row.id) ?? 0,
+      video_count: videoCounts.get(row.id) ?? 0,
+    };
+    res.json({ store });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Server error" });
+  }
+}
+
 const patchStoreAdminSchema = z
   .object({
     plan: z.enum(["free", "premium"]).optional(),
@@ -155,7 +188,13 @@ async function patchStore(req, res) {
     }
 
     const patch = {};
-    if (data.plan === "premium" && premium) {
+    if (data.plan === "premium") {
+      if (!premium) {
+        return res.status(400).json({
+          error:
+            "Premium plan is missing in the database. Run subscription plan migrations or seed subscription_plans.",
+        });
+      }
       patch.plan_id = premium.id;
       patch.plan = premium.slug;
       patch.plan_expires_at = null;
@@ -166,6 +205,11 @@ async function patchStore(req, res) {
     }
     if (data.verified !== undefined) patch.verified = data.verified;
     if (data.verified === false) patch.verified_expires_at = null;
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({
+        error: "Nothing to update (invalid or empty legacy plan/verified payload).",
+      });
+    }
     const updated = await storeModel.updateStore(id, patch);
     res.json({ store: updated });
   } catch (e) {
@@ -455,6 +499,7 @@ module.exports = {
   stats,
   users,
   stores,
+  storeById,
   patchStore,
   deleteStore,
   subscriptionRequests,

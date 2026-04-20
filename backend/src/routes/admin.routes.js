@@ -11,6 +11,7 @@ router.delete("/plans/:id", admin.deletePlan);
 router.get("/stats", admin.stats);
 router.get("/users", admin.users);
 router.get("/stores", admin.stores);
+router.get("/stores/:id", admin.storeById);
 router.patch("/stores/:id", express.json(), admin.patchStore);
 router.delete("/stores/:id", admin.deleteStore);
 router.get("/subscription-requests", admin.subscriptionRequests);
