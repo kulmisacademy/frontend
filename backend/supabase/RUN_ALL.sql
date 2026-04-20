@@ -346,3 +346,6 @@ create unique index if not exists store_orders_store_order_code_uq
   on public.store_orders (store_id, order_code);
 
 alter table public.store_orders alter column order_code set not null;
+
+-- --- 012_stores_plan_slug_dynamic.sql ---
+alter table public.stores drop constraint if exists stores_plan_check;

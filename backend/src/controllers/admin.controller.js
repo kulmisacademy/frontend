@@ -7,6 +7,60 @@ const subscriptionRequestModel = require("../models/subscription-request.model")
 const subscriptionPlanModel = require("../models/subscription-plan.model");
 const { addMonthsIso } = require("../lib/store-effective-plan");
 
+/**
+ * Legacy `stores.plan` text was constrained to 'free' | 'premium'. Limits use `plan_id`;
+ * for older DBs that still have stores_plan_check, map custom plan slugs to "premium".
+ */
+function legacyStoresPlanText(planRow) {
+  const s = String(planRow?.slug || "")
+    .trim()
+    .toLowerCase();
+  if (s === "free") return "free";
+  return "premium";
+}
+
+function storeUpdateErrorResponse(e) {
+  const code =
+    e && typeof e === "object" && "code" in e ? String(e.code) : "";
+  const message =
+    e && typeof e === "object" && "message" in e && e.message != null
+      ? String(e.message)
+      : e instanceof Error
+        ? e.message
+        : String(e);
+  const hint =
+    e && typeof e === "object" && "hint" in e && e.hint != null
+      ? String(e.hint)
+      : undefined;
+  const details =
+    e && typeof e === "object" && "details" in e && e.details != null
+      ? String(e.details)
+      : undefined;
+  if (code === "23514") {
+    return {
+      status: 400,
+      body: {
+        error:
+          "This database still restricts stores.plan to free/premium only. Run migration 012_stores_plan_slug_dynamic.sql (or full 006+) in Supabase, then retry.",
+        code,
+        message,
+        hint,
+        details,
+      },
+    };
+  }
+  return {
+    status: 500,
+    body: {
+      error: "Could not update store",
+      code: code || undefined,
+      message,
+      hint,
+      details,
+    },
+  };
+}
+
 async function stats(req, res) {
   try {
     const [users, stores, products, orders] = await Promise.all([
@@ -156,7 +210,7 @@ async function patchStore(req, res) {
       }
       const updated = await storeModel.updateStore(id, {
         plan_id: planRow.id,
-        plan: planRow.slug,
+        plan: legacyStoresPlanText(planRow),
         plan_expires_at: addMonthsIso(
           new Date(),
           data.assign_plan.duration_months
@@ -214,7 +268,8 @@ async function patchStore(req, res) {
     res.json({ store: updated });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: "Could not update store" });
+    const { status, body } = storeUpdateErrorResponse(e);
+    res.status(status).json(body);
   }
 }
 
