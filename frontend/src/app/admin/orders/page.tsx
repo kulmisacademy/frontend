@@ -77,12 +77,12 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-3xl font-bold tracking-tight">
+    <div className="min-w-0 space-y-6">
+      <div className="min-w-0">
+        <h1 className="font-heading text-2xl font-bold tracking-tight break-words sm:text-3xl">
           {t("orders.title")}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground text-pretty break-words">
           {t("orders.adminSubtitle")}
         </p>
       </div>
@@ -112,7 +112,7 @@ export default function AdminOrdersPage() {
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <Badge
                       variant={statusBadgeProps(o.status).variant}
                       className={cn(
@@ -123,25 +123,25 @@ export default function AdminOrdersPage() {
                       {orderStatusLabel(o.status)}
                     </Badge>
                     {o.store_name ? (
-                      <span className="text-sm font-medium">{o.store_name}</span>
+                      <span className="min-w-0 break-words text-sm font-medium">{o.store_name}</span>
                     ) : null}
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
                     {new Date(o.created_at).toLocaleString()}
                   </p>
                   {o.customer_name || o.customer_phone ? (
-                    <p className="mt-2 text-sm">
+                    <p className="mt-2 break-words text-sm">
                       {o.customer_name || "—"}
                       {o.customer_phone ? ` · ${o.customer_phone}` : ""}
                     </p>
                   ) : null}
                   {o.message ? (
-                    <p className="mt-2 text-sm text-muted-foreground">
+                    <p className="mt-2 break-words text-sm text-muted-foreground">
                       {o.message}
                     </p>
                   ) : null}
                   {o.items_summary ? (
-                    <p className="mt-1 text-sm">{o.items_summary}</p>
+                    <p className="mt-1 break-words text-sm">{o.items_summary}</p>
                   ) : null}
                   {o.total != null ? (
                     <p className="mt-2 text-sm font-medium">

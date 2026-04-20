@@ -218,7 +218,7 @@ export default function AdminStoresPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       {assignPlanStore ? (
         <Modal title="Assign plan" onClose={() => setAssignPlanStore(null)}>
           <div className="space-y-4 text-sm">
@@ -295,9 +295,11 @@ export default function AdminStoresPage() {
         </Modal>
       ) : null}
 
-      <div>
-        <h1 className="font-heading text-3xl font-bold tracking-tight">Stores</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <div className="min-w-0">
+        <h1 className="font-heading text-2xl font-bold tracking-tight break-words sm:text-3xl">
+          Stores
+        </h1>
+        <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground text-pretty break-words">
           Assign subscription plans (limits) and verified badges (separate, time-based).
         </p>
       </div>
@@ -317,138 +319,275 @@ export default function AdminStoresPage() {
           No stores yet.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border/80 bg-card shadow-sm">
-          <table className="w-full min-w-[1180px] text-left text-sm">
-            <thead className="border-b border-border/80 bg-muted/30">
-              <tr>
-                <th className="px-4 py-3 font-medium">Store</th>
-                <th className="px-4 py-3 font-medium">Owner</th>
-                <th className="px-4 py-3 font-medium">Products</th>
-                <th className="px-4 py-3 font-medium">Videos</th>
-                <th className="px-4 py-3 font-medium">Plan</th>
-                <th className="px-4 py-3 font-medium">Expires</th>
-                <th className="px-4 py-3 font-medium">Verified</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
-                <th className="px-4 py-3 font-medium" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((s) => (
-                <tr key={s.id} className="border-b border-border/60 last:border-0">
-                  <td className="px-4 py-3">
-                    <span className="font-medium">{s.store_name}</span>
-                    <span className="mt-0.5 block font-mono text-xs text-muted-foreground">
-                      {s.slug}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {s.owner ? (
-                      <>
-                        <span className="text-foreground">{s.owner.name}</span>
-                        <span className="mt-0.5 block text-xs">{s.owner.email}</span>
-                      </>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-4 py-3 tabular-nums">{s.product_count ?? "—"}</td>
-                  <td className="px-4 py-3 tabular-nums">{s.video_count ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant="secondary" className="capitalize">
-                      {s.plan || "free"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {fmtDate(s.plan_expires_at)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-0.5">
-                      {s.verified ? (
-                        <Badge variant="outline" className="w-fit text-[10px]">
-                          On
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                      <span className="text-[10px] text-muted-foreground">
-                        {fmtDate(s.verified_expires_at)}
-                      </span>
+        <>
+          <div className="space-y-4 lg:hidden">
+            {rows.map((s) => (
+              <article
+                key={s.id}
+                className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm"
+              >
+                <div className="min-w-0 space-y-3">
+                  <div>
+                    <h2 className="font-heading text-lg font-semibold break-words">{s.store_name}</h2>
+                    <p className="break-all font-mono text-xs text-muted-foreground">{s.slug}</p>
+                  </div>
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm sm:grid-cols-3">
+                    <div className="min-w-0 sm:col-span-2">
+                      <dt className="text-xs font-medium text-muted-foreground">Owner</dt>
+                      <dd className="mt-0.5 break-words text-foreground">
+                        {s.owner ? (
+                          <>
+                            <span className="font-medium">{s.owner.name}</span>
+                            <span className="mt-0.5 block break-all text-xs text-muted-foreground">
+                              {s.owner.email}
+                            </span>
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </dd>
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1.5">
+                    <div>
+                      <dt className="text-xs font-medium text-muted-foreground">Products</dt>
+                      <dd className="mt-0.5 tabular-nums">{s.product_count ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-medium text-muted-foreground">Videos</dt>
+                      <dd className="mt-0.5 tabular-nums">{s.video_count ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-medium text-muted-foreground">Plan</dt>
+                      <dd className="mt-0.5">
+                        <Badge variant="secondary" className="capitalize">
+                          {s.plan || "free"}
+                        </Badge>
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-xs font-medium text-muted-foreground">Plan expires</dt>
+                      <dd className="mt-0.5 text-xs text-muted-foreground">{fmtDate(s.plan_expires_at)}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-xs font-medium text-muted-foreground">Verified</dt>
+                      <dd className="mt-0.5">
+                        {s.verified ? (
+                          <Badge variant="outline" className="w-fit text-[10px]">
+                            On
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                        <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                          {fmtDate(s.verified_expires_at)}
+                        </span>
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="flex flex-col gap-2 border-t border-border/60 pt-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="rounded-xl"
+                        className="h-auto min-h-10 w-full whitespace-normal rounded-xl py-2 text-left leading-tight"
                         disabled={patching === s.id}
                         onClick={() => {
                           setPlanMonths("12");
                           setAssignPlanStore(s);
                         }}
                       >
-                        <CalendarClock className="mr-1 size-3.5" />
+                        <CalendarClock className="mr-1 size-3.5 shrink-0" />
                         Assign plan
                       </Button>
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="rounded-xl"
+                        className="h-auto min-h-10 w-full whitespace-normal rounded-xl py-2 text-left leading-tight"
                         disabled={patching === s.id}
                         onClick={() => setAssignVerifiedStore(s)}
                       >
-                        <BadgeCheck className="mr-1 size-3.5" />
+                        <BadgeCheck className="mr-1 size-3.5 shrink-0" />
                         Verified badge
                       </Button>
                       <Button
                         type="button"
                         size="sm"
-                        className="rounded-xl"
+                        className="h-auto min-h-10 w-full whitespace-normal rounded-xl py-2 text-left leading-tight sm:col-span-2"
                         disabled={patching === s.id}
                         onClick={() => void quickPremium(s)}
                       >
-                        <Crown className="mr-1 size-3.5" />
-                        Premium + verified (12m)
+                        <Crown className="mr-1 size-3.5 shrink-0" />
+                        Premium + verified (12&nbsp;mo)
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="rounded-xl"
+                        className="h-auto min-h-10 w-full rounded-xl sm:col-span-2"
                         disabled={patching === s.id}
                         onClick={() => void setFree(s)}
                       >
                         Set Free
                       </Button>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <Button variant="outline" size="sm" className="rounded-xl" asChild>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Button variant="outline" size="sm" className="w-full rounded-xl sm:flex-1" asChild>
                         <Link href={`/store/${s.slug}`} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="mr-1 size-3.5" />
-                          View
+                          View storefront
                         </Link>
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
-                        className="rounded-xl"
+                        className="w-full rounded-xl sm:flex-1"
                         disabled={deleting === s.id}
                         onClick={() => void removeStore(s.id, s.store_name)}
                       >
                         <Trash2 className="mr-1 size-3.5" />
-                        Delete
+                        Delete store
                       </Button>
                     </div>
-                  </td>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-2xl border border-border/80 bg-card shadow-sm lg:block">
+            <table className="w-full min-w-[1180px] text-left text-sm">
+              <thead className="border-b border-border/80 bg-muted/30">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Store</th>
+                  <th className="px-4 py-3 font-medium">Owner</th>
+                  <th className="px-4 py-3 font-medium">Products</th>
+                  <th className="px-4 py-3 font-medium">Videos</th>
+                  <th className="px-4 py-3 font-medium">Plan</th>
+                  <th className="px-4 py-3 font-medium">Expires</th>
+                  <th className="px-4 py-3 font-medium">Verified</th>
+                  <th className="px-4 py-3 font-medium">Actions</th>
+                  <th className="px-4 py-3 font-medium" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((s) => (
+                  <tr key={s.id} className="border-b border-border/60 last:border-0">
+                    <td className="px-4 py-3">
+                      <span className="font-medium">{s.store_name}</span>
+                      <span className="mt-0.5 block font-mono text-xs text-muted-foreground">
+                        {s.slug}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {s.owner ? (
+                        <>
+                          <span className="text-foreground">{s.owner.name}</span>
+                          <span className="mt-0.5 block text-xs">{s.owner.email}</span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">{s.product_count ?? "—"}</td>
+                    <td className="px-4 py-3 tabular-nums">{s.video_count ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant="secondary" className="capitalize">
+                        {s.plan || "free"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {fmtDate(s.plan_expires_at)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-0.5">
+                        {s.verified ? (
+                          <Badge variant="outline" className="w-fit text-[10px]">
+                            On
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                        <span className="text-[10px] text-muted-foreground">
+                          {fmtDate(s.verified_expires_at)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1.5">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="rounded-xl"
+                          disabled={patching === s.id}
+                          onClick={() => {
+                            setPlanMonths("12");
+                            setAssignPlanStore(s);
+                          }}
+                        >
+                          <CalendarClock className="mr-1 size-3.5" />
+                          Assign plan
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="rounded-xl"
+                          disabled={patching === s.id}
+                          onClick={() => setAssignVerifiedStore(s)}
+                        >
+                          <BadgeCheck className="mr-1 size-3.5" />
+                          Verified badge
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="rounded-xl"
+                          disabled={patching === s.id}
+                          onClick={() => void quickPremium(s)}
+                        >
+                          <Crown className="mr-1 size-3.5" />
+                          Premium + verified (12m)
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl"
+                          disabled={patching === s.id}
+                          onClick={() => void setFree(s)}
+                        >
+                          Set Free
+                        </Button>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button variant="outline" size="sm" className="rounded-xl" asChild>
+                          <Link href={`/store/${s.slug}`} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="mr-1 size-3.5" />
+                            View
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="rounded-xl"
+                          disabled={deleting === s.id}
+                          onClick={() => void removeStore(s.id, s.store_name)}
+                        >
+                          <Trash2 className="mr-1 size-3.5" />
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

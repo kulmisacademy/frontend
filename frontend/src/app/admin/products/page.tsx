@@ -55,12 +55,12 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-heading text-3xl font-bold tracking-tight">
+    <div className="min-w-0 space-y-8">
+      <div className="min-w-0">
+        <h1 className="font-heading text-2xl font-bold tracking-tight break-words sm:text-3xl">
           All products
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground text-pretty break-words">
           Catalog across every store — open the vendor storefront to see live
           listings.
         </p>
@@ -81,12 +81,7 @@ export default function AdminProductsPage() {
           No products in the database.
         </div>
       ) : (
-        <div
-          className="grid gap-4 sm:gap-5"
-          style={{
-            gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-          }}
-        >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((p) => {
             const img = p.images?.[0] ?? "/placeholder-product.svg";
             const storeHref = p.store_slug

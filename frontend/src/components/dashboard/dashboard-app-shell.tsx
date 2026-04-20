@@ -258,16 +258,16 @@ function MobileHeaderBar({
 }) {
   const { t } = useDashboardI18n();
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border/80 bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden">
+    <header className="sticky top-0 z-40 flex h-14 min-w-0 items-center gap-2 border-b border-border/80 bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:gap-3 sm:px-4 lg:hidden">
       <button
         type="button"
-        className="rounded-lg p-2 text-foreground hover:bg-muted"
+        className="shrink-0 rounded-lg p-2 text-foreground hover:bg-muted"
         aria-label={t("shell.openMenu")}
         onClick={onMenuOpen}
       >
         <Menu className="size-6" />
       </button>
-      <span className="font-heading font-semibold">
+      <span className="min-w-0 truncate font-heading text-[15px] font-semibold sm:text-base">
         {variant === "vendor" ? t("shell.brandVendor") : t("shell.brandAdmin")}
       </span>
       <div className="ml-auto flex items-center gap-2">

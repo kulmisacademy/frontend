@@ -42,7 +42,7 @@ export function OrderFiltersBar({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-2xl border border-border/80 bg-muted/20 p-4 sm:flex-row sm:flex-wrap sm:items-end",
+        "flex min-w-0 flex-col gap-3 rounded-2xl border border-border/80 bg-muted/20 p-4 sm:flex-row sm:flex-wrap sm:items-end",
         className
       )}
     >

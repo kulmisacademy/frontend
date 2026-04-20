@@ -93,13 +93,13 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight">
+    <div className="min-w-0 space-y-10">
+      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="font-heading text-2xl font-bold tracking-tight break-words sm:text-3xl">
             {t("adminDashboard.title")}
           </h1>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-2 max-w-prose text-pretty break-words text-muted-foreground">
             {t("adminDashboard.subtitle")}
           </p>
           {loadErr ? (
