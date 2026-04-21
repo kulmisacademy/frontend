@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
-import { getApiBaseUrl } from "@/lib/api";
+import { getUpstreamApiBaseUrl } from "@/lib/api";
 
 function getSecret() {
   const s = process.env.JWT_SECRET?.trim();
@@ -32,7 +32,7 @@ async function proxy(
   }
   const { path } = await ctx.params;
   const suffix = path?.length ? path.join("/") : "";
-  const base = getApiBaseUrl().replace(/\/$/, "");
+  const base = getUpstreamApiBaseUrl();
   const u = new URL(req.url);
   const qs = u.searchParams.toString();
   const target = `${base}/api/admin/${suffix}${qs ? `?${qs}` : ""}`;

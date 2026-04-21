@@ -564,6 +564,9 @@ async function updatePlan(req, res) {
     res.json({ plan });
   } catch (e) {
     console.error(e);
+    if (e.code === "23505") {
+      return res.status(409).json({ error: "Slug already exists" });
+    }
     res.status(500).json({ error: "Could not update plan" });
   }
 }

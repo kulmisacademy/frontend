@@ -117,44 +117,29 @@ export default function AdminPlansPage() {
 
   async function removePlan(id: string, planName: string, isSystem: boolean) {
     if (!user) return;
+    const activeOthers = rows.filter((r) => r.active && r.id !== id);
+    const reassignFallback =
+      activeOthers.find((r) => r.slug === "free") ||
+      activeOthers.find((r) => r.slug === "premium") ||
+      activeOthers[0];
+    const reassignNote = reassignFallback
+      ? ` If stores or pending upgrades still use this plan, they will be moved to "${reassignFallback.name}" (${reassignFallback.slug}) first.`
+      : " If anything still references this plan, deletion may be blocked until another active plan exists.";
     const warn = isSystem
-      ? `Delete built-in plan "${planName}"? Re-create a plan with slug free or premium if the app expects it, and reassign any stores first.`
-      : `Delete plan "${planName}"? Stores and requests must not reference it.`;
+      ? `Delete built-in plan "${planName}"? Re-create a plan with slug free or premium if the app expects it.${reassignNote}`
+      : `Delete plan "${planName}"?${reassignNote}`;
     if (!window.confirm(warn)) return;
     setErr(null);
-    const reassignFallback =
-      rows.find((r) => r.slug === "free" && r.id !== id) ||
-      rows.find((r) => r.slug === "premium" && r.id !== id) ||
-      rows.find((r) => r.id !== id);
     try {
-      await adminFetch(`/plans/${encodeURIComponent(id)}`, { method: "DELETE" });
+      const qs = reassignFallback
+        ? `?reassign_to=${encodeURIComponent(reassignFallback.id)}`
+        : "";
+      await adminFetch(`/plans/${encodeURIComponent(id)}${qs}`, {
+        method: "DELETE",
+      });
       await load();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Delete failed";
-      const blocked =
-        msg.includes("409") ||
-        /still assigned|stores or requests/i.test(msg);
-      if (blocked && reassignFallback) {
-        const ok = window.confirm(
-          `Plan "${planName}" is still linked to stores or upgrade requests.\n\n` +
-            `Reassign all of them to "${reassignFallback.name}" (${reassignFallback.slug}), then delete this plan?`
-        );
-        if (!ok) {
-          setErr(msg);
-          return;
-        }
-        try {
-          await adminFetch(
-            `/plans/${encodeURIComponent(id)}?reassign_to=${encodeURIComponent(reassignFallback.id)}`,
-            { method: "DELETE" }
-          );
-          await load();
-        } catch (e2) {
-          setErr(e2 instanceof Error ? e2.message : "Delete failed after reassignment");
-        }
-        return;
-      }
-      setErr(msg);
+      setErr(e instanceof Error ? e.message : "Delete failed");
     }
   }
 

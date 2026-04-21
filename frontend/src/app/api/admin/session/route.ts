@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
-import { getApiBaseUrl } from "@/lib/api";
+import { getUpstreamApiBaseUrl } from "@/lib/api";
 
 function getSecret() {
   const s = process.env.JWT_SECRET?.trim();
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const upstream = await fetch(`${getApiBaseUrl()}/api/admin/login`, {
+    const upstream = await fetch(`${getUpstreamApiBaseUrl()}/api/admin/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
