@@ -11,6 +11,17 @@ export function getApiBaseUrl(): string {
   return url || DEFAULT_API;
 }
 
+/**
+ * Server-side base URL for Next.js API routes that proxy to Express.
+ * Prefer `LAAS24_API_URL` on Vercel so it can point at your API host even when
+ * `NEXT_PUBLIC_API_URL` is unset or must not equal the site origin (avoids proxy loops).
+ */
+export function getUpstreamApiBaseUrl(): string {
+  const internal = process.env.LAAS24_API_URL?.trim().replace(/\/$/, "");
+  if (internal) return internal;
+  return getApiBaseUrl().replace(/\/$/, "");
+}
+
 function isBrowserNetworkFailure(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   const m = err.message;

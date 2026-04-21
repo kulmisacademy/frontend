@@ -10,7 +10,7 @@ import { PasswordInput } from "@/components/password-input";
 import { Spinner } from "@/components/ui/spinner";
 import { MarketingShell } from "@/components/marketing-shell";
 import { PageContainer } from "@/components/ui/section";
-import { apiFetch } from "@/lib/api";
+import { affiliateAuthApiFetch } from "@/lib/affiliate-api";
 import {
   setAffiliateSession,
   type AffiliateUser,
@@ -42,7 +42,7 @@ export function AffiliateRegisterClient() {
     }
     setLoading(true);
     try {
-      const data = await apiFetch<{
+      const data = await affiliateAuthApiFetch<{
         token: string;
         affiliate: AffiliateUser;
       }>("/api/affiliate-auth/register", {
