@@ -6,6 +6,12 @@ const orderModel = require("../models/order.model");
 const subscriptionRequestModel = require("../models/subscription-request.model");
 const subscriptionPlanModel = require("../models/subscription-plan.model");
 const { addMonthsIso } = require("../lib/store-effective-plan");
+const {
+  createCommissionForApprovedPlanRequest,
+} = require("../lib/affiliate-subscription-commission");
+const {
+  syncReferralQualificationForStore,
+} = require("../lib/affiliate-qualification");
 
 /**
  * Legacy `stores.plan` text was constrained to 'free' | 'premium'. Limits use `plan_id`;
@@ -353,13 +359,14 @@ async function approveSubscriptionRequest(req, res) {
     }
     const requestType = row.request_type || "plan";
     const months = Math.max(1, Number(row.duration_months) || 1);
+    let planRow = null;
     if (requestType === "verified") {
       await storeModel.updateStore(row.store_id, {
         verified: true,
         verified_expires_at: addMonthsIso(new Date(), months),
       });
     } else {
-      const planRow = row.target_plan_id
+      planRow = row.target_plan_id
         ? await subscriptionPlanModel.findById(row.target_plan_id)
         : null;
       if (!planRow || planRow.active === false) {
@@ -379,6 +386,20 @@ async function approveSubscriptionRequest(req, res) {
     if (!updated) {
       return res.status(409).json({ error: "Could not approve request" });
     }
+    if (requestType !== "verified" && planRow) {
+      try {
+        await createCommissionForApprovedPlanRequest({
+          subscriptionRequestId: id,
+          storeId: row.store_id,
+          planRow,
+        });
+      } catch (err) {
+        console.error("[affiliate-commission]", err);
+      }
+    }
+    syncReferralQualificationForStore(row.store_id).catch((err) => {
+      console.error("[affiliate-qualification]", err);
+    });
     res.json({ request: updated, store_id: row.store_id });
   } catch (e) {
     console.error(e);

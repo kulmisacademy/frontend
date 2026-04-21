@@ -10,6 +10,8 @@ const catalogRoutes = require("./routes/catalog.routes");
 const ordersRoutes = require("./routes/orders.routes");
 const vendorRoutes = require("./routes/vendor.routes");
 const adminRoutes = require("./routes/admin.routes");
+const affiliateAuthRoutes = require("./routes/affiliate-auth.routes");
+const affiliateRoutes = require("./routes/affiliate.routes");
 const adminAuthController = require("./controllers/admin-auth.controller");
 const { adminIpAllowlist } = require("./middleware/admin-ip.middleware");
 const aiRoutes = require("./routes/ai.routes");
@@ -124,6 +126,9 @@ const authLimiter = rateLimit({
 app.use("/api/auth", authLimiter);
 app.use("/api/auth", authRoutes);
 
+app.use("/api/affiliate-auth", authLimiter);
+app.use("/api/affiliate-auth", affiliateAuthRoutes);
+
 const catalogPublicLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 800,
@@ -161,6 +166,14 @@ app.post(
 );
 
 app.use("/api/admin", requireAuth, requireRole("admin"), adminRoutes);
+
+app.use(
+  "/api/affiliate",
+  authLimiter,
+  requireAuth,
+  requireRole("affiliate"),
+  affiliateRoutes
+);
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "laas24-backend" });

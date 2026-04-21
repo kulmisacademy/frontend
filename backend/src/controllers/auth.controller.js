@@ -16,6 +16,17 @@ const ratingModel = require("../models/rating.model");
 const followModel = require("../models/follow.model");
 const { getSupabase } = require("../lib/supabase");
 const { sendMail } = require("../lib/mail");
+const affiliateModel = require("../models/affiliate.model");
+const affiliateReferralModel = require("../models/affiliate-referral.model");
+const {
+  syncReferralQualificationForStore,
+} = require("../lib/affiliate-qualification");
+
+function touchAffiliateQualification(storeId) {
+  return syncReferralQualificationForStore(storeId).catch((e) => {
+    console.error("[affiliate-qualification]", e);
+  });
+}
 
 const registerCustomerSchema = z.object({
   name: z.string().min(1).max(200),
@@ -244,6 +255,8 @@ async function registerVendor(req, res) {
       return res.status(400).json({ error: "Store logo is required" });
     }
     const { name, email, phone, password, store_name, region } = parsed.data;
+    const refRaw =
+      typeof req.body.ref_code === "string" ? req.body.ref_code.trim() : "";
     const country = parsed.data.country?.trim() || "Somalia";
     const city =
       (parsed.data.city && parsed.data.city.trim()) ||
@@ -255,6 +268,20 @@ async function registerVendor(req, res) {
     const existing = await userModel.findByEmail(email);
     if (existing) {
       return res.status(409).json({ error: "Email already registered" });
+    }
+
+    let referredByAffiliateId = null;
+    if (refRaw) {
+      const aff = await affiliateModel.findByRefCode(refRaw.toUpperCase());
+      if (aff) {
+        if (aff.email === email.toLowerCase().trim()) {
+          return res.status(400).json({
+            error:
+              "You cannot register a store using your own affiliate referral code.",
+          });
+        }
+        referredByAffiliateId = aff.id;
+      }
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
@@ -297,7 +324,17 @@ async function registerVendor(req, res) {
       status: "approved",
       planId: freePlan?.id,
       planSlug: freePlan?.slug || "free",
+      referredByAffiliateId,
     });
+
+    if (referredByAffiliateId) {
+      await affiliateReferralModel.createReferral({
+        affiliateId: referredByAffiliateId,
+        storeId: store.id,
+        status: "pending",
+      });
+    }
+    touchAffiliateQualification(store.id);
 
     const token = signToken(user);
     res.status(201).json({

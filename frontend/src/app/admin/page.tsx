@@ -156,6 +156,14 @@ export default function AdminDashboardPage() {
             </li>
             <li>
               <Link
+                href="/admin/affiliates"
+                className="text-primary hover:underline"
+              >
+                Affiliates &amp; payouts
+              </Link>
+            </li>
+            <li>
+              <Link
                 href="/admin/subscription-requests"
                 className="text-primary hover:underline"
               >

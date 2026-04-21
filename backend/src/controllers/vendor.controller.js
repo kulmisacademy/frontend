@@ -19,6 +19,15 @@ const {
   capitalForRegion,
 } = require("../lib/somalia");
 const { withNetworkRetries } = require("../lib/retry-network");
+const {
+  syncReferralQualificationForStore,
+} = require("../lib/affiliate-qualification");
+
+function touchAffiliateQualification(storeId) {
+  return syncReferralQualificationForStore(storeId).catch((e) => {
+    console.error("[affiliate-qualification]", e);
+  });
+}
 
 async function getStoreForVendor(userId) {
   return storeModel.findByUserId(userId);
@@ -175,6 +184,7 @@ async function updateMyStore(req, res) {
     }
 
     const updated = await storeModel.updateStore(store.id, patch);
+    touchAffiliateQualification(store.id);
     res.json({ store: updated });
   } catch (e) {
     console.error(e);
@@ -311,6 +321,7 @@ async function createProduct(req, res) {
       location: parsed.data.location?.trim() || null,
     };
     const product = await productModel.createProduct(row);
+    touchAffiliateQualification(store.id);
     res.status(201).json({ product });
   } catch (e) {
     console.error(e);
@@ -395,6 +406,7 @@ async function updateProduct(req, res) {
     }
 
     const product = await productModel.updateProduct(id, patch);
+    touchAffiliateQualification(store.id);
     res.json({ product });
   } catch (e) {
     console.error(e);
@@ -412,6 +424,7 @@ async function deleteProduct(req, res) {
       return res.status(404).json({ error: "Product not found" });
     }
     await productModel.deleteProduct(id);
+    touchAffiliateQualification(store.id);
     res.status(204).send();
   } catch (e) {
     console.error(e);
@@ -459,6 +472,7 @@ async function patchOrder(req, res) {
       return res.status(404).json({ error: "Order not found" });
     }
     const updated = await orderModel.updateStatus(id, parsed.data.status);
+    touchAffiliateQualification(store.id);
     res.json({ order: updated });
   } catch (e) {
     console.error(e);

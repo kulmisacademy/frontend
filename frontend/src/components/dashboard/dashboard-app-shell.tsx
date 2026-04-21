@@ -20,6 +20,7 @@ import {
   Settings,
   ChevronRight,
   CreditCard,
+  Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -59,6 +60,7 @@ const adminNav: DashboardNavItem[] = [
     labelKey: "shell.navUpgrades",
     icon: CreditCard,
   },
+  { href: "/admin/affiliates", labelKey: "shell.navAffiliates", icon: Gift },
   { href: "/admin/products", labelKey: "shell.navProductsAdmin", icon: Package },
   { href: "/admin/orders", labelKey: "shell.navOrdersAdmin", icon: ShoppingBag },
   { href: "/admin/settings", labelKey: "shell.navSettings", icon: Settings },

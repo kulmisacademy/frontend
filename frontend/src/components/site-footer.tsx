@@ -4,6 +4,7 @@ import { PageContainer } from "@/components/ui/section";
 const links = [
   { href: "/marketplace", label: "Marketplace" },
   { href: "/stores", label: "Stores" },
+  { href: "/affiliate/register", label: "Affiliate program" },
   { href: "/register?type=vendor", label: "Become a vendor" },
   { href: "/account/orders", label: "My orders" },
   { href: "/login", label: "Sign in" },

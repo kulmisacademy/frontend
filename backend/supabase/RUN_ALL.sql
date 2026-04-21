@@ -349,3 +349,117 @@ alter table public.store_orders alter column order_code set not null;
 
 -- --- 012_stores_plan_slug_dynamic.sql ---
 alter table public.stores drop constraint if exists stores_plan_check;
+
+-- --- 013_affiliate_system.sql ---
+create table if not exists public.affiliates (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  email text not null unique,
+  phone text,
+  password text not null,
+  ref_code text not null unique,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists affiliates_ref_code_idx on public.affiliates (ref_code);
+
+create table if not exists public.affiliate_system_settings (
+  id text primary key default 'default' check (id = 'default'),
+  commission_type text not null default 'percent'
+    check (commission_type in ('percent', 'fixed')),
+  commission_value numeric(12, 4) not null default 10
+    check (commission_value >= 0),
+  min_withdrawal numeric(12, 2) not null default 5 check (min_withdrawal >= 0),
+  first_n_bonus_stores int not null default 5 check (first_n_bonus_stores >= 0),
+  first_n_bonus_extra_percent numeric(12, 4) not null default 0
+    check (first_n_bonus_extra_percent >= 0),
+  updated_at timestamptz not null default now()
+);
+
+insert into public.affiliate_system_settings (id)
+values ('default')
+on conflict (id) do nothing;
+
+alter table public.stores
+  add column if not exists referred_by_affiliate_id uuid
+    references public.affiliates (id) on delete set null;
+
+create index if not exists stores_referred_by_affiliate_id_idx
+  on public.stores (referred_by_affiliate_id)
+  where referred_by_affiliate_id is not null;
+
+create table if not exists public.affiliate_referrals (
+  id uuid primary key default gen_random_uuid(),
+  affiliate_id uuid not null references public.affiliates (id) on delete cascade,
+  store_id uuid not null references public.stores (id) on delete cascade,
+  status text not null default 'pending'
+    check (status in ('pending', 'verified', 'rejected')),
+  rejection_reason text,
+  created_at timestamptz not null default now(),
+  verified_at timestamptz,
+  unique (store_id)
+);
+
+create index if not exists affiliate_referrals_affiliate_id_idx
+  on public.affiliate_referrals (affiliate_id);
+create index if not exists affiliate_referrals_status_idx
+  on public.affiliate_referrals (status);
+
+create table if not exists public.affiliate_withdrawals (
+  id uuid primary key default gen_random_uuid(),
+  affiliate_id uuid not null references public.affiliates (id) on delete cascade,
+  amount numeric(12, 2) not null check (amount > 0),
+  status text not null default 'pending'
+    check (status in ('pending', 'approved', 'rejected', 'paid')),
+  method text not null
+    check (method in ('evc_plus', 'sahal', 'whatsapp')),
+  phone text not null,
+  admin_note text,
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz
+);
+
+create index if not exists affiliate_withdrawals_affiliate_id_idx
+  on public.affiliate_withdrawals (affiliate_id);
+create index if not exists affiliate_withdrawals_status_idx
+  on public.affiliate_withdrawals (status);
+
+create table if not exists public.affiliate_commissions (
+  id uuid primary key default gen_random_uuid(),
+  affiliate_id uuid not null references public.affiliates (id) on delete cascade,
+  store_id uuid references public.stores (id) on delete cascade,
+  subscription_request_id uuid references public.subscription_requests (id) on delete set null,
+  plan_slug text,
+  plan_price numeric(12, 2),
+  amount numeric(12, 2) not null check (amount >= 0),
+  status text not null default 'pending'
+    check (status in ('pending', 'verified', 'requested', 'approved', 'paid')),
+  withdrawal_id uuid references public.affiliate_withdrawals (id) on delete set null,
+  source text not null default 'subscription'
+    check (source in ('subscription', 'manual_bonus')),
+  notes text,
+  created_at timestamptz not null default now(),
+  constraint affiliate_commissions_store_source_chk
+    check (
+      (source = 'manual_bonus' and store_id is null)
+      or (source = 'subscription' and store_id is not null)
+    )
+);
+
+create index if not exists affiliate_commissions_affiliate_id_idx
+  on public.affiliate_commissions (affiliate_id);
+create index if not exists affiliate_commissions_store_id_idx
+  on public.affiliate_commissions (store_id)
+  where store_id is not null;
+create index if not exists affiliate_commissions_status_idx
+  on public.affiliate_commissions (status);
+
+create unique index if not exists affiliate_commissions_subscription_request_id_key
+  on public.affiliate_commissions (subscription_request_id)
+  where subscription_request_id is not null;
+
+alter table public.affiliates enable row level security;
+alter table public.affiliate_system_settings enable row level security;
+alter table public.affiliate_referrals enable row level security;
+alter table public.affiliate_withdrawals enable row level security;
+alter table public.affiliate_commissions enable row level security;

@@ -15,6 +15,7 @@ import { useAuth } from "@/context/auth-context";
 import type { AuthUser } from "@/lib/auth-storage";
 import type { VendorStore } from "@/lib/vendor-store";
 import { cn } from "@/lib/utils";
+import { readReferralCode } from "@/lib/referral-cookie";
 
 const schema = z.object({
   name: z.string().min(1).max(200),
@@ -73,6 +74,10 @@ export function RegisterVendorClient() {
     fd.append("region", parsed.data.region);
     fd.append("city", parsed.data.city);
     fd.append("logo", logo);
+    const refCode = readReferralCode();
+    if (refCode) {
+      fd.append("ref_code", refCode);
+    }
 
     setLoading(true);
     try {

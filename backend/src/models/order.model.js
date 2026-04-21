@@ -94,6 +94,17 @@ async function pendingCountByStoreId(storeId) {
   return count ?? 0;
 }
 
+async function approvedCountByStoreId(storeId) {
+  const supabase = getSupabase();
+  const { count, error } = await supabase
+    .from(TABLE)
+    .select("*", { count: "exact", head: true })
+    .eq("store_id", storeId)
+    .eq("status", "approved");
+  if (error) throw error;
+  return count ?? 0;
+}
+
 /** Orders placed while logged in */
 async function listByCustomerId(customerId) {
   if (!customerId) return [];
@@ -254,6 +265,7 @@ module.exports = {
   updateStatus,
   countByStoreId,
   pendingCountByStoreId,
+  approvedCountByStoreId,
   normalizePhone,
   listByCustomerId,
   listByCustomerPhone,

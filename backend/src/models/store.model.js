@@ -14,6 +14,7 @@ async function createStore({
   status,
   planId,
   planSlug,
+  referredByAffiliateId,
 }) {
   const supabase = getSupabase();
   const insert = {
@@ -27,6 +28,9 @@ async function createStore({
     whatsapp_phone: whatsappPhone || null,
     status: status || "approved",
   };
+  if (referredByAffiliateId) {
+    insert.referred_by_affiliate_id = referredByAffiliateId;
+  }
   if (planId) insert.plan_id = planId;
   if (planSlug) insert.plan = planSlug;
   const { data, error } = await supabase
