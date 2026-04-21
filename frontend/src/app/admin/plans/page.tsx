@@ -98,45 +98,29 @@ export default function AdminPlansPage() {
     }
   }
 
-  async function savePlanPrice(id: string, value: string) {
+  async function savePlanFull(id: string, patch: Record<string, unknown>) {
     if (!user) return;
     setSavingRowId(id);
     setErr(null);
     try {
       await adminFetch(`/plans/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ price: Math.max(0, Number(value) || 0) }),
+        body: JSON.stringify(patch),
       });
       await load();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Could not update price");
+      setErr(e instanceof Error ? e.message : "Could not update plan");
     } finally {
       setSavingRowId(null);
     }
   }
 
-  async function savePlanAiDaily(id: string, raw: string) {
+  async function removePlan(id: string, planName: string, isSystem: boolean) {
     if (!user) return;
-    setSavingRowId(id);
-    setErr(null);
-    try {
-      const ai_daily_limit =
-        raw.trim() === "" ? -1 : Math.max(0, Math.floor(Number(raw) || 0));
-      await adminFetch(`/plans/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ ai_daily_limit }),
-      });
-      await load();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Could not update daily AI");
-    } finally {
-      setSavingRowId(null);
-    }
-  }
-
-  async function removePlan(id: string, isSystem: boolean) {
-    if (!user || isSystem) return;
-    if (!window.confirm("Delete this plan? Stores must not depend on it.")) return;
+    const warn = isSystem
+      ? `Delete built-in plan "${planName}"? Re-create a plan with slug free or premium if the app expects it, and reassign any stores first.`
+      : `Delete plan "${planName}"? Stores and requests must not reference it.`;
+    if (!window.confirm(warn)) return;
     setErr(null);
     try {
       await adminFetch(`/plans/${id}`, { method: "DELETE" });
@@ -276,26 +260,26 @@ export default function AdminPlansPage() {
                 key={p.id}
                 plan={p}
                 savingRowId={savingRowId}
-                onSavePrice={(id, v) => void savePlanPrice(id, v)}
-                onSaveAiDaily={(id, v) => void savePlanAiDaily(id, v)}
-                onRemove={(id, isSystem) => void removePlan(id, isSystem)}
+                onSaveFull={(id, patch) => void savePlanFull(id, patch)}
+                onRemove={(id, name, isSystem) => void removePlan(id, name, isSystem)}
                 formatPlanPrice={formatPlanPrice}
               />
             ))}
           </ul>
           <div className="hidden overflow-x-auto rounded-2xl border border-border/80 bg-card shadow-sm lg:block">
-            <table className="w-full min-w-[1020px] text-left text-sm">
+            <table className="w-full min-w-[1180px] text-left text-sm">
               <thead className="border-b border-border/80 bg-muted/30">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Plan</th>
+                  <th className="px-4 py-3 font-medium">Plan name</th>
                   <th className="px-4 py-3 font-medium">Slug</th>
-                  <th className="px-4 py-3 font-medium">Price</th>
                   <th className="px-4 py-3 font-medium">Products</th>
                   <th className="px-4 py-3 font-medium">Videos</th>
                   <th className="px-4 py-3 font-medium">AI total</th>
+                  <th className="px-4 py-3 font-medium">Price</th>
                   <th className="px-4 py-3 font-medium">AI/day</th>
+                  <th className="px-4 py-3 font-medium">Active</th>
                   <th className="px-4 py-3 font-medium">Flags</th>
-                  <th className="px-4 py-3 font-medium" />
+                  <th className="px-4 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -304,9 +288,8 @@ export default function AdminPlansPage() {
                     key={p.id}
                     plan={p}
                     savingRowId={savingRowId}
-                    onSavePrice={(id, v) => void savePlanPrice(id, v)}
-                    onSaveAiDaily={(id, v) => void savePlanAiDaily(id, v)}
-                    onRemove={(id, isSystem) => void removePlan(id, isSystem)}
+                    onSaveFull={(id, patch) => void savePlanFull(id, patch)}
+                    onRemove={(id, name, isSystem) => void removePlan(id, name, isSystem)}
                     formatPlanPrice={formatPlanPrice}
                   />
                 ))}
@@ -319,134 +302,248 @@ export default function AdminPlansPage() {
   );
 }
 
-function usePlanRowDrafts(p: PlanRow) {
-  const [draft, setDraft] = React.useState(String(p.price ?? 0));
-  const [aiDailyDraft, setAiDailyDraft] = React.useState(
+function buildPlanSavePatch(d: {
+  name: string;
+  slug: string;
+  products: string;
+  videos: string;
+  aiTotal: string;
+  price: string;
+  aiDaily: string;
+  active: boolean;
+  fallbackSlug: string;
+}): Record<string, unknown> | null {
+  const nameT = d.name.trim();
+  if (!nameT) return null;
+  const slugBase = d.slug.trim().toLowerCase().replace(/\s+/g, "-");
+  const slug = slugBase || d.fallbackSlug;
+  const aiRaw = d.aiTotal.trim();
+  const ai_limit =
+    aiRaw === "" || aiRaw === "-1" ? -1 : Math.max(0, Math.floor(Number(aiRaw)));
+  const dailyRaw = d.aiDaily.trim();
+  const ai_daily_limit = dailyRaw === "" ? -1 : Math.max(0, Math.floor(Number(dailyRaw) || 0));
+  return {
+    name: nameT,
+    slug,
+    product_limit: Math.max(0, Math.floor(Number(d.products) || 0)),
+    video_limit: Math.max(0, Math.floor(Number(d.videos) || 0)),
+    ai_limit,
+    price: Math.max(0, Number(d.price) || 0),
+    ai_daily_limit,
+    active: d.active,
+  };
+}
+
+function usePlanEditDrafts(p: PlanRow) {
+  const [name, setName] = React.useState(p.name);
+  const [slug, setSlug] = React.useState(p.slug);
+  const [products, setProducts] = React.useState(String(p.product_limit));
+  const [videos, setVideos] = React.useState(String(p.video_limit));
+  const [aiTotal, setAiTotal] = React.useState(p.ai_limit == null ? "-1" : String(p.ai_limit));
+  const [price, setPrice] = React.useState(String(p.price ?? 0));
+  const [aiDaily, setAiDaily] = React.useState(
     p.ai_daily_limit != null ? String(p.ai_daily_limit) : ""
   );
+  const [active, setActive] = React.useState(p.active);
+
   React.useEffect(() => {
-    setDraft(String(p.price ?? 0));
-  }, [p.id, p.price]);
-  React.useEffect(() => {
-    setAiDailyDraft(p.ai_daily_limit != null ? String(p.ai_daily_limit) : "");
-  }, [p.id, p.ai_daily_limit]);
-  return { draft, setDraft, aiDailyDraft, setAiDailyDraft };
+    setName(p.name);
+    setSlug(p.slug);
+    setProducts(String(p.product_limit));
+    setVideos(String(p.video_limit));
+    setAiTotal(p.ai_limit == null ? "-1" : String(p.ai_limit));
+    setPrice(String(p.price ?? 0));
+    setAiDaily(p.ai_daily_limit != null ? String(p.ai_daily_limit) : "");
+    setActive(p.active);
+  }, [
+    p.id,
+    p.name,
+    p.slug,
+    p.product_limit,
+    p.video_limit,
+    p.ai_limit,
+    p.price,
+    p.ai_daily_limit,
+    p.active,
+  ]);
+
+  return {
+    name,
+    setName,
+    slug,
+    setSlug,
+    products,
+    setProducts,
+    videos,
+    setVideos,
+    aiTotal,
+    setAiTotal,
+    price,
+    setPrice,
+    aiDaily,
+    setAiDaily,
+    active,
+    setActive,
+  };
 }
 
 function PlanPriceCard({
   plan: p,
   savingRowId,
-  onSavePrice,
-  onSaveAiDaily,
+  onSaveFull,
   onRemove,
   formatPlanPrice,
 }: {
   plan: PlanRow;
   savingRowId: string | null;
-  onSavePrice: (id: string, value: string) => void;
-  onSaveAiDaily: (id: string, value: string) => void;
-  onRemove: (id: string, isSystem: boolean) => void;
+  onSaveFull: (id: string, patch: Record<string, unknown>) => void;
+  onRemove: (id: string, name: string, isSystem: boolean) => void;
   formatPlanPrice: (n: number) => string;
 }) {
-  const { draft, setDraft, aiDailyDraft, setAiDailyDraft } = usePlanRowDrafts(p);
+  const st = usePlanEditDrafts(p);
+  const busy = savingRowId === p.id;
+
+  function handleSave() {
+    const patch = buildPlanSavePatch({
+      name: st.name,
+      slug: st.slug,
+      products: st.products,
+      videos: st.videos,
+      aiTotal: st.aiTotal,
+      price: st.price,
+      aiDaily: st.aiDaily,
+      active: st.active,
+      fallbackSlug: p.slug,
+    });
+    if (!patch) {
+      window.alert("Plan name is required.");
+      return;
+    }
+    onSaveFull(p.id, patch);
+  }
+
   return (
     <li className="rounded-2xl border border-border/80 bg-card p-4 text-sm shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-heading font-semibold break-words">{p.name}</p>
-          <p className="break-all font-mono text-xs text-muted-foreground">{p.slug}</p>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {p.is_system ? (
-            <Badge variant="secondary" className="text-[10px]">
-              System
-            </Badge>
-          ) : null}
-          {!p.active ? (
-            <Badge variant="outline" className="text-[10px]">
-              Inactive
-            </Badge>
-          ) : null}
-        </div>
-      </div>
-      <dl className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-        <div>
-          <dt className="text-xs text-muted-foreground">Products</dt>
-          <dd className="tabular-nums">{p.product_limit}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">Videos</dt>
-          <dd className="tabular-nums">{p.video_limit}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">AI total</dt>
-          <dd className="tabular-nums">{p.ai_limit == null ? "∞" : p.ai_limit}</dd>
-        </div>
-      </dl>
-      <div className="mt-4 space-y-3 border-t border-border/60 pt-3">
-        <div>
-          <p className="mb-1 text-xs font-medium text-muted-foreground">Price (USD)</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              type="number"
-              min={0}
-              step="0.01"
-              className="h-10 min-w-0 flex-1 rounded-xl text-sm"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              aria-label={`Price for ${p.name}`}
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              className="shrink-0 rounded-xl"
-              disabled={savingRowId === p.id}
-              onClick={() => onSavePrice(p.id, draft)}
-            >
-              {savingRowId === p.id ? <Spinner className="size-3.5" /> : "Save"}
-            </Button>
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {formatPlanPrice(Number(draft) || 0)}
-          </p>
-        </div>
-        <div>
-          <p className="mb-1 text-xs font-medium text-muted-foreground">AI / day (UTC)</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              type="number"
-              min={0}
-              className="h-10 min-w-0 flex-1 rounded-xl text-sm"
-              value={aiDailyDraft}
-              onChange={(e) => setAiDailyDraft(e.target.value)}
-              placeholder="—"
-              title="Empty = no daily cap (UTC day)"
-              aria-label={`Daily AI cap for ${p.name}`}
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              className="shrink-0 rounded-xl"
-              disabled={savingRowId === p.id}
-              onClick={() => onSaveAiDaily(p.id, aiDailyDraft)}
-            >
-              Save
-            </Button>
-          </div>
-        </div>
-        {!p.is_system ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full rounded-xl border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => onRemove(p.id, p.is_system)}
-          >
-            <Trash2 className="mr-2 size-4" />
-            Delete plan
-          </Button>
+      <div className="mb-3 flex flex-wrap justify-end gap-1">
+        {p.is_system ? (
+          <Badge variant="secondary" className="text-[10px]">
+            System
+          </Badge>
         ) : null}
+      </div>
+      <div className="space-y-3">
+        <label className="block space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">Plan name</span>
+          <Input
+            value={st.name}
+            onChange={(e) => st.setName(e.target.value)}
+            className="rounded-xl"
+            disabled={busy}
+          />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">Slug</span>
+          <Input
+            value={st.slug}
+            onChange={(e) => st.setSlug(e.target.value)}
+            className="rounded-xl font-mono text-sm"
+            disabled={busy}
+          />
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Products</span>
+            <Input
+              type="number"
+              min={0}
+              value={st.products}
+              onChange={(e) => st.setProducts(e.target.value)}
+              className="rounded-xl"
+              disabled={busy}
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Videos</span>
+            <Input
+              type="number"
+              min={0}
+              value={st.videos}
+              onChange={(e) => st.setVideos(e.target.value)}
+              className="rounded-xl"
+              disabled={busy}
+            />
+          </label>
+        </div>
+        <label className="block space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">
+            AI total (−1 = unlimited)
+          </span>
+          <Input
+            type="number"
+            value={st.aiTotal}
+            onChange={(e) => st.setAiTotal(e.target.value)}
+            className="rounded-xl"
+            disabled={busy}
+          />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">Price (USD)</span>
+          <Input
+            type="number"
+            min={0}
+            step="0.01"
+            value={st.price}
+            onChange={(e) => st.setPrice(e.target.value)}
+            className="rounded-xl"
+            disabled={busy}
+          />
+          <span className="text-xs text-muted-foreground">
+            Preview: {formatPlanPrice(Number(st.price) || 0)}
+          </span>
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">AI / day (UTC)</span>
+          <Input
+            type="number"
+            min={0}
+            value={st.aiDaily}
+            onChange={(e) => st.setAiDaily(e.target.value)}
+            placeholder="empty = none"
+            className="rounded-xl"
+            disabled={busy}
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="size-4 rounded border-input"
+            checked={st.active}
+            onChange={(e) => st.setActive(e.target.checked)}
+            disabled={busy}
+          />
+          Active (shown in upgrade catalog when applicable)
+        </label>
+      </div>
+      <div className="mt-4 flex flex-col gap-2 border-t border-border/60 pt-3">
+        <Button
+          type="button"
+          className="w-full rounded-xl"
+          disabled={busy}
+          onClick={() => void handleSave()}
+        >
+          {busy ? <Spinner className="size-4" /> : null}
+          {busy ? "Saving…" : "Save changes"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full rounded-xl border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          disabled={busy}
+          onClick={() => onRemove(p.id, p.name, p.is_system)}
+        >
+          <Trash2 className="mr-2 size-4" />
+          Delete plan
+        </Button>
       </div>
     </li>
   );
@@ -455,76 +552,125 @@ function PlanPriceCard({
 function PlanPriceRow({
   plan: p,
   savingRowId,
-  onSavePrice,
-  onSaveAiDaily,
+  onSaveFull,
   onRemove,
   formatPlanPrice,
 }: {
   plan: PlanRow;
   savingRowId: string | null;
-  onSavePrice: (id: string, value: string) => void;
-  onSaveAiDaily: (id: string, value: string) => void;
-  onRemove: (id: string, isSystem: boolean) => void;
+  onSaveFull: (id: string, patch: Record<string, unknown>) => void;
+  onRemove: (id: string, name: string, isSystem: boolean) => void;
   formatPlanPrice: (n: number) => string;
 }) {
-  const { draft, setDraft, aiDailyDraft, setAiDailyDraft } = usePlanRowDrafts(p);
+  const st = usePlanEditDrafts(p);
+  const busy = savingRowId === p.id;
+
+  function handleSave() {
+    const patch = buildPlanSavePatch({
+      name: st.name,
+      slug: st.slug,
+      products: st.products,
+      videos: st.videos,
+      aiTotal: st.aiTotal,
+      price: st.price,
+      aiDaily: st.aiDaily,
+      active: st.active,
+      fallbackSlug: p.slug,
+    });
+    if (!patch) {
+      window.alert("Plan name is required.");
+      return;
+    }
+    onSaveFull(p.id, patch);
+  }
 
   return (
     <tr className="border-b border-border/60 last:border-0">
-      <td className="px-4 py-3 font-medium">{p.name}</td>
-      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.slug}</td>
+      <td className="max-w-[10rem] px-4 py-3">
+        <Input
+          value={st.name}
+          onChange={(e) => st.setName(e.target.value)}
+          className="h-9 w-full min-w-0 rounded-lg text-sm"
+          disabled={busy}
+          aria-label={`Plan name ${p.name}`}
+        />
+      </td>
+      <td className="max-w-[8rem] px-4 py-3">
+        <Input
+          value={st.slug}
+          onChange={(e) => st.setSlug(e.target.value)}
+          className="h-9 w-full min-w-0 rounded-lg font-mono text-xs"
+          disabled={busy}
+          aria-label={`Slug ${p.slug}`}
+        />
+      </td>
       <td className="px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <Input
+          type="number"
+          min={0}
+          className="h-9 w-16 rounded-lg text-sm tabular-nums"
+          value={st.products}
+          onChange={(e) => st.setProducts(e.target.value)}
+          disabled={busy}
+        />
+      </td>
+      <td className="px-4 py-3">
+        <Input
+          type="number"
+          min={0}
+          className="h-9 w-16 rounded-lg text-sm tabular-nums"
+          value={st.videos}
+          onChange={(e) => st.setVideos(e.target.value)}
+          disabled={busy}
+        />
+      </td>
+      <td className="px-4 py-3">
+        <Input
+          type="number"
+          className="h-9 w-[4.5rem] rounded-lg text-sm tabular-nums"
+          value={st.aiTotal}
+          onChange={(e) => st.setAiTotal(e.target.value)}
+          title="-1 = unlimited"
+          disabled={busy}
+        />
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex flex-col gap-1">
           <Input
             type="number"
             min={0}
             step="0.01"
             className="h-9 w-[6.5rem] rounded-lg text-sm"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            aria-label={`Price for ${p.name}`}
+            value={st.price}
+            onChange={(e) => st.setPrice(e.target.value)}
+            disabled={busy}
           />
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="h-9 rounded-lg px-2 text-xs"
-            disabled={savingRowId === p.id}
-            onClick={() => onSavePrice(p.id, draft)}
-          >
-            {savingRowId === p.id ? <Spinner className="size-3.5" /> : "Save"}
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            {formatPlanPrice(Number(draft) || 0)}
+          <span className="text-[10px] text-muted-foreground">
+            {formatPlanPrice(Number(st.price) || 0)}
           </span>
         </div>
       </td>
-      <td className="px-4 py-3 tabular-nums">{p.product_limit}</td>
-      <td className="px-4 py-3 tabular-nums">{p.video_limit}</td>
-      <td className="px-4 py-3 tabular-nums">{p.ai_limit == null ? "∞" : p.ai_limit}</td>
       <td className="px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Input
-            type="number"
-            min={0}
-            className="h-9 w-[4.5rem] rounded-lg text-sm"
-            value={aiDailyDraft}
-            onChange={(e) => setAiDailyDraft(e.target.value)}
-            placeholder="—"
-            title="Empty = no daily cap (UTC day)"
-            aria-label={`Daily AI cap for ${p.name}`}
-          />
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="h-9 rounded-lg px-2 text-xs"
-            disabled={savingRowId === p.id}
-            onClick={() => onSaveAiDaily(p.id, aiDailyDraft)}
-          >
-            Save
-          </Button>
-        </div>
+        <Input
+          type="number"
+          min={0}
+          className="h-9 w-[4.5rem] rounded-lg text-sm"
+          value={st.aiDaily}
+          onChange={(e) => st.setAiDaily(e.target.value)}
+          placeholder="—"
+          title="Empty = no daily cap"
+          disabled={busy}
+        />
+      </td>
+      <td className="px-4 py-3">
+        <input
+          type="checkbox"
+          className="size-4 rounded border-input"
+          checked={st.active}
+          onChange={(e) => st.setActive(e.target.checked)}
+          disabled={busy}
+          aria-label={`Active ${p.name}`}
+        />
       </td>
       <td className="px-4 py-3">
         <div className="flex flex-wrap gap-1">
@@ -533,27 +679,32 @@ function PlanPriceRow({
               System
             </Badge>
           ) : null}
-          {!p.active ? (
-            <Badge variant="outline" className="text-[10px]">
-              Inactive
-            </Badge>
-          ) : null}
         </div>
       </td>
-      <td className="px-4 py-3 text-right">
-        {!p.is_system ? (
+      <td className="px-4 py-3">
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="h-9 rounded-lg px-3 text-xs"
+            disabled={busy}
+            onClick={() => void handleSave()}
+          >
+            {busy ? <Spinner className="size-3.5" /> : "Save"}
+          </Button>
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="rounded-xl text-destructive hover:text-destructive"
-            onClick={() => onRemove(p.id, p.is_system)}
+            className="h-9 rounded-lg text-destructive hover:text-destructive"
+            disabled={busy}
+            onClick={() => onRemove(p.id, p.name, p.is_system)}
+            aria-label={`Delete ${p.name}`}
           >
             <Trash2 className="size-4" />
           </Button>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        )}
+        </div>
       </td>
     </tr>
   );

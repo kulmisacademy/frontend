@@ -543,9 +543,6 @@ async function updatePlan(req, res) {
     res.json({ plan });
   } catch (e) {
     console.error(e);
-    if (e.code === "SYSTEM_PLAN") {
-      return res.status(400).json({ error: e.message });
-    }
     res.status(500).json({ error: "Could not update plan" });
   }
 }
@@ -558,9 +555,6 @@ async function deletePlan(req, res) {
     res.status(204).send();
   } catch (e) {
     console.error(e);
-    if (e.code === "SYSTEM_PLAN") {
-      return res.status(400).json({ error: e.message });
-    }
     if (e.code === "23503") {
       return res.status(409).json({
         error: "Plan is still assigned to stores or requests",

@@ -104,18 +104,10 @@ async function createPlan({
 async function updatePlan(id, patch) {
   const row = await findById(id);
   if (!row) return null;
-  if (row.is_system) {
-    const forbidden = ["slug", "is_system"].filter((k) => patch[k] !== undefined);
-    if (forbidden.length) {
-      const err = new Error("Cannot change slug or system flag on built-in plans");
-      err.code = "SYSTEM_PLAN";
-      throw err;
-    }
-  }
   const supabase = getSupabase();
   const body = {};
   if (patch.name !== undefined) body.name = String(patch.name).trim();
-  if (patch.slug !== undefined && !row.is_system) {
+  if (patch.slug !== undefined) {
     body.slug = String(patch.slug).trim().toLowerCase().replace(/\s+/g, "-");
   }
   if (patch.product_limit !== undefined) body.product_limit = patch.product_limit;
@@ -151,11 +143,6 @@ async function updatePlan(id, patch) {
 async function deletePlan(id) {
   const row = await findById(id);
   if (!row) return false;
-  if (row.is_system) {
-    const err = new Error("Cannot delete built-in plan");
-    err.code = "SYSTEM_PLAN";
-    throw err;
-  }
   const supabase = getSupabase();
   const { error } = await supabase.from(TABLE).delete().eq("id", id);
   if (error) {
