@@ -550,6 +550,25 @@ async function updatePlan(req, res) {
 async function deletePlan(req, res) {
   try {
     const { id } = req.params;
+    const reassignToRaw =
+      req.query && typeof req.query.reassign_to === "string"
+        ? req.query.reassign_to.trim()
+        : "";
+    if (reassignToRaw) {
+      const targetPlan = await subscriptionPlanModel.findById(reassignToRaw);
+      if (!targetPlan || targetPlan.active === false) {
+        return res.status(400).json({
+          error: "Invalid or inactive reassign_to plan",
+        });
+      }
+      if (targetPlan.id === id) {
+        return res
+          .status(400)
+          .json({ error: "reassign_to must be a different plan than the one being deleted" });
+      }
+      await subscriptionPlanModel.reassignStoresFromPlanToPlan(id, targetPlan);
+      await subscriptionPlanModel.reassignSubscriptionRequestTargets(id, targetPlan.id);
+    }
     const deleted = await subscriptionPlanModel.deletePlan(id);
     if (!deleted) return res.status(404).json({ error: "Plan not found" });
     res.status(204).send();
@@ -558,6 +577,8 @@ async function deletePlan(req, res) {
     if (e.code === "23503") {
       return res.status(409).json({
         error: "Plan is still assigned to stores or requests",
+        hint:
+          "Retry DELETE with query reassign_to=<uuid> (another plan, usually Free) to move stores and upgrade requests off this plan first.",
       });
     }
     res.status(500).json({ error: "Could not delete plan" });

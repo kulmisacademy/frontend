@@ -152,6 +152,37 @@ async function deletePlan(id) {
   return true;
 }
 
+/**
+ * Move every store using `fromPlanId` onto `toPlan` (plan_id + plan text; clear expires when target is free).
+ */
+async function reassignStoresFromPlanToPlan(fromPlanId, toPlan) {
+  if (!fromPlanId || !toPlan?.id) return;
+  const supabase = getSupabase();
+  const slug = String(toPlan.slug || "")
+    .trim()
+    .toLowerCase();
+  const body = {
+    plan_id: toPlan.id,
+    plan: slug === "free" || slug === "premium" ? slug : "premium",
+  };
+  if (slug === "free") {
+    body.plan_expires_at = null;
+  }
+  const { error } = await supabase.from("stores").update(body).eq("plan_id", fromPlanId);
+  if (error) throw error;
+}
+
+/** Point pending upgrade requests at another plan when they targeted the deleted one. */
+async function reassignSubscriptionRequestTargets(fromPlanId, toPlanId) {
+  if (!fromPlanId || !toPlanId || fromPlanId === toPlanId) return;
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from("subscription_requests")
+    .update({ target_plan_id: toPlanId })
+    .eq("target_plan_id", fromPlanId);
+  if (error) throw error;
+}
+
 module.exports = {
   findById,
   findBySlug,
@@ -160,4 +191,6 @@ module.exports = {
   createPlan,
   updatePlan,
   deletePlan,
+  reassignStoresFromPlanToPlan,
+  reassignSubscriptionRequestTargets,
 };

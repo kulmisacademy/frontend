@@ -122,11 +122,39 @@ export default function AdminPlansPage() {
       : `Delete plan "${planName}"? Stores and requests must not reference it.`;
     if (!window.confirm(warn)) return;
     setErr(null);
+    const reassignFallback =
+      rows.find((r) => r.slug === "free" && r.id !== id) ||
+      rows.find((r) => r.slug === "premium" && r.id !== id) ||
+      rows.find((r) => r.id !== id);
     try {
-      await adminFetch(`/plans/${id}`, { method: "DELETE" });
+      await adminFetch(`/plans/${encodeURIComponent(id)}`, { method: "DELETE" });
       await load();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Delete failed");
+      const msg = e instanceof Error ? e.message : "Delete failed";
+      const blocked =
+        msg.includes("409") ||
+        /still assigned|stores or requests/i.test(msg);
+      if (blocked && reassignFallback) {
+        const ok = window.confirm(
+          `Plan "${planName}" is still linked to stores or upgrade requests.\n\n` +
+            `Reassign all of them to "${reassignFallback.name}" (${reassignFallback.slug}), then delete this plan?`
+        );
+        if (!ok) {
+          setErr(msg);
+          return;
+        }
+        try {
+          await adminFetch(
+            `/plans/${encodeURIComponent(id)}?reassign_to=${encodeURIComponent(reassignFallback.id)}`,
+            { method: "DELETE" }
+          );
+          await load();
+        } catch (e2) {
+          setErr(e2 instanceof Error ? e2.message : "Delete failed after reassignment");
+        }
+        return;
+      }
+      setErr(msg);
     }
   }
 
