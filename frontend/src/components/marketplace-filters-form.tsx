@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { SlidersHorizontal } from "lucide-react";
 import {
   CATEGORIES,
@@ -12,12 +13,29 @@ import { LocationSelect } from "@/components/ui/location-select";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "latest", label: "Latest" },
-  { value: "popular", label: "Popular" },
-  { value: "price-asc", label: "Price: Low" },
-  { value: "price-desc", label: "Price: High" },
-];
+export const SORT_OPTION_VALUES: readonly SortOption[] = [
+  "latest",
+  "popular",
+  "price-asc",
+  "price-desc",
+] as const;
+
+export function sortOptionLabelKey(
+  s: SortOption
+): "sortLatest" | "sortPopular" | "sortPriceAsc" | "sortPriceDesc" {
+  switch (s) {
+    case "latest":
+      return "sortLatest";
+    case "popular":
+      return "sortPopular";
+    case "price-asc":
+      return "sortPriceAsc";
+    case "price-desc":
+      return "sortPriceDesc";
+    default:
+      return "sortLatest";
+  }
+}
 
 export type MarketplaceFiltersState = {
   category: CategoryFilter;
@@ -53,6 +71,8 @@ export function MarketplaceFiltersForm({
   compact = false,
   showSearch = true,
 }: MarketplaceFiltersFormProps) {
+  const tf = useTranslations("filters");
+  const tc = useTranslations("categories");
   const gapSection = compact ? "gap-4" : "gap-6";
   const padCard = compact ? "p-4" : "p-5 md:p-6";
 
@@ -61,13 +81,13 @@ export function MarketplaceFiltersForm({
       {showSearch ? (
         <div className="flex flex-col gap-2">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Search
+            {tf("search")}
           </span>
           <Input
             type="search"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Search products…"
+            placeholder={tf("searchPlaceholder")}
             className="h-11 rounded-2xl border-border/80 bg-muted/25 shadow-sm md:h-12"
           />
         </div>
@@ -83,7 +103,7 @@ export function MarketplaceFiltersForm({
         <div className="min-w-0 flex-1 space-y-3">
           <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
             <SlidersHorizontal className="size-4 text-primary" />
-            Category
+            {tf("category")}
           </span>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
@@ -98,7 +118,7 @@ export function MarketplaceFiltersForm({
                     : "border-border/80 bg-background/90 text-muted-foreground hover:border-primary/40 hover:text-foreground"
                 )}
               >
-                {c}
+                {tc(c as "All" | "Food" | "Electronics" | "Fashion" | "Home" | "Wellness")}
               </button>
             ))}
           </div>
@@ -110,22 +130,22 @@ export function MarketplaceFiltersForm({
           )}
         >
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Sort by
+            {tf("sortBy")}
           </span>
           <div className="flex flex-wrap gap-2">
-            {SORT_OPTIONS.map((s) => (
+            {SORT_OPTION_VALUES.map((s) => (
               <button
-                key={s.value}
+                key={s}
                 type="button"
-                onClick={() => onSortChange(s.value)}
+                onClick={() => onSortChange(s)}
                 className={cn(
                   "rounded-lg px-3 py-2 text-xs font-semibold transition-all",
-                  sort === s.value
+                  sort === s
                     ? "bg-foreground text-background shadow-sm"
                     : "text-muted-foreground hover:bg-muted"
                 )}
               >
-                {s.label}
+                {tf(sortOptionLabelKey(s))}
               </button>
             ))}
           </div>
@@ -142,7 +162,7 @@ export function MarketplaceFiltersForm({
           className={cn("flex flex-col gap-2 rounded-2xl", !compact && "md:col-span-1")}
         >
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Location
+            {tf("location")}
           </span>
           <LocationSelect value={location} onChange={onLocationChange} />
         </label>
@@ -154,7 +174,7 @@ export function MarketplaceFiltersForm({
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Max price
+              {tf("maxPrice")}
             </span>
             <span className="text-xs tabular-nums text-muted-foreground">
               $0 – ${priceMax}
@@ -176,5 +196,3 @@ export function MarketplaceFiltersForm({
     </div>
   );
 }
-
-export { SORT_OPTIONS };

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import createNextIntlPlugin from "next-intl/plugin";
 
 /** Directory containing this config (`frontend/`). Forces Turbopack to resolve deps from this app, not a parent folder that only has a root `package-lock.json`. */
 const appDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
@@ -36,4 +37,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withNextIntl(nextConfig);

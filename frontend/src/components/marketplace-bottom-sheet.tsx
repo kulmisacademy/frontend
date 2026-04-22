@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export function MarketplaceBottomSheet({
   footer,
   maxHeightClassName = "max-h-[min(90dvh,720px)]",
 }: MarketplaceBottomSheetProps) {
+  const tc = useTranslations("common");
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -63,7 +65,7 @@ export function MarketplaceBottomSheet({
       <button
         type="button"
         className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
-        aria-label="Close"
+        aria-label={tc("close")}
         onClick={() => onOpenChange(false)}
       />
       <div
@@ -83,7 +85,7 @@ export function MarketplaceBottomSheet({
             size="icon"
             className="size-10 shrink-0 rounded-full"
             onClick={() => onOpenChange(false)}
-            aria-label="Close"
+            aria-label={tc("close")}
           >
             <X className="size-5" />
           </Button>

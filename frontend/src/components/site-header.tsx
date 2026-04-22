@@ -1,19 +1,24 @@
+"use client";
+
 import Image from "next/image";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CartLink } from "@/components/cart-link";
 import { PageContainer } from "@/components/ui/section";
 import { AuthNav } from "@/components/auth-nav";
-
-const nav = [
-  { href: "/", label: "Home" },
-  { href: "/stores", label: "Stores" },
-  { href: "/marketplace", label: "Marketplace" },
-  { href: "/dashboard", label: "Vendor" },
-];
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export function SiteHeader() {
+  const t = useTranslations("nav");
+  const nav = [
+    { href: "/", label: t("home") },
+    { href: "/stores", label: t("stores") },
+    { href: "/marketplace", label: t("marketplace") },
+    { href: "/dashboard", label: t("vendor") },
+  ];
+
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
       <PageContainer className="flex flex-col gap-0 py-2.5 md:py-3">
@@ -47,16 +52,17 @@ export function SiteHeader() {
 
           <div className="hidden min-w-0 flex-1 lg:block">
             <label className="relative block">
-              <span className="sr-only">Search products</span>
+              <span className="sr-only">{t("searchLabel")}</span>
               <Input
                 type="search"
-                placeholder="Search products, stores…"
+                placeholder={t("searchDesktop")}
                 className="h-11 rounded-2xl border-border/80 bg-muted/35 pl-4 pr-4 text-sm"
               />
             </label>
           </div>
 
           <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
+            <LanguageSwitcher className="hidden sm:inline-flex" />
             <ThemeToggle />
             <CartLink />
             <div className="flex items-center gap-1 sm:gap-2">
@@ -65,10 +71,14 @@ export function SiteHeader() {
           </div>
         </div>
 
+        <div className="mt-2.5 flex justify-end sm:hidden">
+          <LanguageSwitcher />
+        </div>
+
         <div className="mt-2.5 border-t border-border/40 pt-2.5 lg:hidden">
           <Input
             type="search"
-            placeholder="Search marketplace…"
+            placeholder={t("searchMobile")}
             className="h-11 rounded-2xl border-border/80 bg-muted/35"
           />
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">

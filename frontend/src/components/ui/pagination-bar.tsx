@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -38,6 +41,7 @@ export function PaginationBar({
   onPageChange,
   className,
 }: PaginationBarProps) {
+  const t = useTranslations("common");
   if (totalPages <= 1) return null;
 
   const items = buildPageList(currentPage, totalPages);
@@ -48,7 +52,7 @@ export function PaginationBar({
         "flex flex-col items-center gap-4 sm:flex-row sm:justify-center",
         className
       )}
-      aria-label="Pagination"
+      aria-label={t("pagination")}
     >
       <div className="flex items-center gap-1.5">
         <Button
@@ -58,7 +62,7 @@ export function PaginationBar({
           className="size-10 rounded-2xl border-border/80 shadow-sm"
           disabled={currentPage <= 1}
           onClick={() => onPageChange(currentPage - 1)}
-          aria-label="Previous page"
+          aria-label={t("previousPage")}
         >
           <ChevronLeft className="size-4" />
         </Button>
@@ -99,7 +103,7 @@ export function PaginationBar({
           className="size-10 rounded-2xl border-border/80 shadow-sm"
           disabled={currentPage >= totalPages}
           onClick={() => onPageChange(currentPage + 1)}
-          aria-label="Next page"
+          aria-label={t("nextPage")}
         >
           <ChevronRight className="size-4" />
         </Button>

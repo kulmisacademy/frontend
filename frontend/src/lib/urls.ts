@@ -12,6 +12,12 @@ export function getSiteBase(): string {
   return "https://laas24.com";
 }
 
-export function productUrl(id: string): string {
-  return `${getSiteBase()}/product/${id}`;
+/** Path only; use with `Link` from `@/i18n/navigation` (locale prefix applied automatically). */
+export function productPath(id: string): string {
+  return `/product/${id}`;
+}
+
+/** Absolute product URL including locale segment (e.g. WhatsApp share links). */
+export function productAbsoluteUrl(id: string, locale: string): string {
+  return `${getSiteBase()}/${locale}/product/${id}`;
 }

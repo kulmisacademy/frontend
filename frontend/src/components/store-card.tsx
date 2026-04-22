@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { ArrowRight, MapPin } from "lucide-react";
 import type { Store } from "@/lib/catalog";
 import { Button } from "@/components/ui/button";
@@ -13,7 +16,10 @@ type StoreCardProps = {
 };
 
 export function StoreCard({ store, className }: StoreCardProps) {
+  const t = useTranslations("storeCard");
   const cover = store.bannerUrl?.trim() || BANNER_FALLBACK;
+  const countKey =
+    store.productCount === 1 ? "productCountOne" : "productCountMany";
 
   return (
     <div
@@ -28,7 +34,7 @@ export function StoreCard({ store, className }: StoreCardProps) {
         <Link
           href={`/store/${store.slug}`}
           className="relative block h-[140px] w-full shrink-0 overflow-hidden bg-gradient-to-br from-muted to-muted/60 sm:h-[160px]"
-          aria-label={`${store.name} store`}
+          aria-label={t("storeAria", { name: store.name })}
         >
           <Image
             src={cover}
@@ -72,15 +78,15 @@ export function StoreCard({ store, className }: StoreCardProps) {
           </span>
         </p>
         <p className="mt-1.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground sm:mt-3 sm:text-xs">
-          {store.productCount} product{store.productCount === 1 ? "" : "s"}
+          {t(countKey, { count: store.productCount })}
         </p>
         <Button
           className="mt-3 h-9 w-full gap-1.5 rounded-xl px-3 text-[11px] font-semibold shadow-sm sm:mt-5 sm:h-11 sm:rounded-2xl sm:text-sm"
           asChild
         >
           <Link href={`/store/${store.slug}`}>
-            <span className="truncate sm:hidden">View</span>
-            <span className="hidden truncate sm:inline">View store</span>
+            <span className="truncate sm:hidden">{t("viewShort")}</span>
+            <span className="hidden truncate sm:inline">{t("viewStore")}</span>
             <ArrowRight className="size-3.5 shrink-0 sm:size-4" />
           </Link>
         </Button>

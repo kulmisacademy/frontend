@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Sparkles } from "lucide-react";
 import type { PlanPayload } from "@/lib/plan-types";
 import { z } from "zod";

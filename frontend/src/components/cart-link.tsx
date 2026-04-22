@@ -1,12 +1,14 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function CartLink({ className }: { className?: string }) {
+  const t = useTranslations("cart");
   const { itemCount } = useCart();
 
   return (
@@ -14,7 +16,7 @@ export function CartLink({ className }: { className?: string }) {
       variant="ghost"
       size="icon"
       className={cn("relative rounded-xl", className)}
-      aria-label={`Shopping cart, ${itemCount} items`}
+      aria-label={t("ariaLabel", { count: itemCount })}
       asChild
     >
       <Link href="/cart">

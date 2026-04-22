@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { ArrowDownWideNarrow, Check, SlidersHorizontal } from "lucide-react";
 import {
   type CategoryFilter,
@@ -15,7 +16,8 @@ import { MarketplaceBottomSheet } from "@/components/marketplace-bottom-sheet";
 import {
   MarketplaceFiltersForm,
   type MarketplaceFiltersState,
-  SORT_OPTIONS,
+  SORT_OPTION_VALUES,
+  sortOptionLabelKey,
 } from "@/components/marketplace-filters-form";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Input } from "@/components/ui/input";
@@ -60,6 +62,8 @@ function MarketplaceGridSkeleton() {
 }
 
 export function MarketplaceClient() {
+  const tm = useTranslations("marketplace");
+  const tf = useTranslations("filters");
   const [products, setProducts] = React.useState<Product[]>([]);
   const [total, setTotal] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
@@ -107,7 +111,7 @@ export function MarketplaceClient() {
       } catch (e) {
         if (e instanceof Error && e.name === "AbortError") return;
         if (!cancelled) {
-          setLoadError("Could not load products. Is the API running?");
+          setLoadError(tm("loadError"));
           setProducts([]);
           setTotal(0);
         }
@@ -119,7 +123,7 @@ export function MarketplaceClient() {
       cancelled = true;
       ac.abort();
     };
-  }, [page, category, location, sort, priceMax, debouncedQuery]);
+  }, [page, category, location, sort, priceMax, debouncedQuery, tm]);
 
   const totalPages = Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
 
@@ -160,8 +164,7 @@ export function MarketplaceClient() {
     setDraft(defaultFilters());
   };
 
-  const sortLabel =
-    SORT_OPTIONS.find((s) => s.value === sort)?.label ?? "Sort";
+  const sortLabel = tf(sortOptionLabelKey(sort));
 
   const isDefaultFilters =
     category === "All" &&
@@ -187,11 +190,10 @@ export function MarketplaceClient() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
           <div className="max-w-2xl space-y-3">
             <h2 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
-              Marketplace
+              {tm("title")}
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
-              Live product feed from LAAS24 vendors. Filter by category, region,
-              and price—then add to cart or order on WhatsApp.
+              {tm("intro")}
             </p>
             {loadError ? (
               <p className="text-sm text-destructive">{loadError}</p>
@@ -199,13 +201,13 @@ export function MarketplaceClient() {
           </div>
           <div className="hidden w-full flex-col gap-2 md:flex md:max-w-md lg:w-auto lg:shrink-0">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Search
+              {tm("search")}
             </span>
             <Input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search products…"
+              placeholder={tm("searchPlaceholder")}
               className="h-12 rounded-2xl border-border/80 bg-muted/25 shadow-sm"
             />
           </div>
@@ -237,7 +239,7 @@ export function MarketplaceClient() {
               onClick={openFilterSheet}
             >
               <SlidersHorizontal className="size-4 text-primary" />
-              Filters
+              {tm("filters")}
             </Button>
             <Button
               type="button"
@@ -254,13 +256,13 @@ export function MarketplaceClient() {
           </div>
 
           <p className="text-sm text-muted-foreground">
-            Showing{" "}
+            {tm("showing")}{" "}
             <span className="font-semibold text-foreground">
               {from}–{to}
             </span>{" "}
-            of{" "}
+            {tm("of")}{" "}
             <span className="font-semibold text-foreground">{total}</span>{" "}
-            products
+            {tm("products")}
           </p>
         </div>
 
@@ -287,9 +289,7 @@ export function MarketplaceClient() {
 
             {total === 0 && !loading ? (
               <p className="rounded-2xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
-                {isDefaultFilters
-                  ? "No products listed yet. Check back when vendors add inventory."
-                  : "No products match your filters. Try adjusting price, category, or search."}
+                {isDefaultFilters ? tm("emptyDefault") : tm("emptyFiltered")}
               </p>
             ) : null}
           </>
@@ -309,7 +309,7 @@ export function MarketplaceClient() {
       <MarketplaceBottomSheet
         open={filterSheetOpen}
         onOpenChange={setFilterSheetOpen}
-        title="Filters"
+        title={tm("filtersSheetTitle")}
         footer={
           <div className="flex gap-3">
             <Button
@@ -318,14 +318,14 @@ export function MarketplaceClient() {
               className="h-11 flex-1 rounded-xl font-semibold"
               onClick={resetDraft}
             >
-              Reset
+              {tm("reset")}
             </Button>
             <Button
               type="button"
               className="h-11 flex-1 rounded-xl font-semibold shadow-sm"
               onClick={applyFilters}
             >
-              Apply filters
+              {tm("applyFilters")}
             </Button>
           </div>
         }
@@ -349,27 +349,27 @@ export function MarketplaceClient() {
       <MarketplaceBottomSheet
         open={sortSheetOpen}
         onOpenChange={setSortSheetOpen}
-        title="Sort by"
+        title={tm("sortBy")}
         maxHeightClassName="max-h-[min(55dvh,420px)]"
       >
         <div className="flex flex-col gap-1 pb-1">
-          {SORT_OPTIONS.map((s) => (
+          {SORT_OPTION_VALUES.map((s) => (
             <button
-              key={s.value}
+              key={s}
               type="button"
               onClick={() => {
-                setSort(s.value);
+                setSort(s);
                 setSortSheetOpen(false);
               }}
               className={cn(
                 "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3.5 text-left text-sm font-semibold transition-colors",
-                sort === s.value
+                sort === s
                   ? "bg-primary/12 text-primary"
                   : "text-foreground hover:bg-muted/80"
               )}
             >
-              {s.label}
-              {sort === s.value ? (
+              {tf(sortOptionLabelKey(s))}
+              {sort === s ? (
                 <Check className="size-4 shrink-0 text-primary" strokeWidth={2.5} />
               ) : null}
             </button>

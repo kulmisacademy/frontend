@@ -1,12 +1,16 @@
-import Link from "next/link";
+"use client";
+
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { ArrowRight, MessageCircle } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/section";
 
 const HERO_BOX_IMAGES = ["/hero/H1.png", "/hero/H2.png", "/hero/H3.png", "/hero/H4.png"] as const;
 
 export function Hero() {
+  const t = useTranslations("home");
   return (
     <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-primary/[0.06] via-background to-background dark:from-primary/10">
       <div
@@ -22,51 +26,49 @@ export function Hero() {
           <div className="flex-1 space-y-6">
             <p className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">
               <span className="size-1.5 rounded-full bg-primary" />
-              Multi-vendor marketplace · WhatsApp-ready orders
+              {t("badge")}
             </p>
             <h1 className="font-heading text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-[3.25rem] lg:leading-[1.08]">
-              Shop local.{" "}
-              <span className="text-primary">Sell everywhere.</span>
+              {t("heroLead")}{" "}
+              <span className="text-primary">{t("heroAccent")}</span>
             </h1>
             <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              LAAS24 connects Somali vendors and buyers with a fast marketplace,
-              shareable store links, and one-tap WhatsApp ordering—built for real
-              commerce, not just browsing.
+              {t("subtitle")}
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Button size="lg" className="rounded-2xl px-8" asChild>
+            <div className="flex min-h-[3.25rem] flex-col gap-3 sm:flex-row sm:items-stretch">
+              <Button size="lg" className="min-h-12 rounded-2xl px-8 sm:min-h-[3.25rem]" asChild>
                 <Link href="/marketplace">
-                  Browse marketplace
+                  {t("browse")}
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                className="rounded-2xl border-primary/25 bg-background/60 px-8"
+                className="min-h-12 rounded-2xl border-primary/25 bg-background/60 px-8 sm:min-h-[3.25rem]"
                 asChild
               >
                 <Link href="/register?type=vendor">
                   <MessageCircle className="size-4 text-primary" />
-                  Open your store
+                  {t("openStore")}
                 </Link>
               </Button>
             </div>
             <dl className="grid max-w-lg grid-cols-3 gap-6 border-t border-border/60 pt-8 text-sm">
               <div>
-                <dt className="text-muted-foreground">Vendors</dt>
-                <dd className="font-heading text-xl font-bold">2 min</dd>
-                <dd className="text-xs text-muted-foreground">to go live</dd>
+                <dt className="text-muted-foreground">{t("statVendors")}</dt>
+                <dd className="font-heading text-xl font-bold">{t("statVendorsValue")}</dd>
+                <dd className="text-xs text-muted-foreground">{t("statVendorsHint")}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Orders</dt>
-                <dd className="font-heading text-xl font-bold">WhatsApp</dd>
-                <dd className="text-xs text-muted-foreground">primary flow</dd>
+                <dt className="text-muted-foreground">{t("statOrders")}</dt>
+                <dd className="font-heading text-xl font-bold">{t("statOrdersValue")}</dd>
+                <dd className="text-xs text-muted-foreground">{t("statOrdersHint")}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Scale</dt>
-                <dd className="font-heading text-xl font-bold">10K+</dd>
-                <dd className="text-xs text-muted-foreground">DAU ready</dd>
+                <dt className="text-muted-foreground">{t("statScale")}</dt>
+                <dd className="font-heading text-xl font-bold">{t("statScaleValue")}</dd>
+                <dd className="text-xs text-muted-foreground">{t("statScaleHint")}</dd>
               </div>
             </dl>
           </div>
@@ -77,14 +79,14 @@ export function Hero() {
                 <div className="mb-4 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-muted-foreground">
-                      Preview · Storefront
+                      {t("previewLabel")}
                     </p>
                     <p className="font-heading text-lg font-bold">
-                      laas24.com/store/your-name
+                      {t("previewUrl")}
                     </p>
                   </div>
                   <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-secondary-foreground">
-                    Live
+                    {t("live")}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -95,7 +97,7 @@ export function Hero() {
                     >
                       <Image
                         src={src}
-                        alt={`Storefront preview ${i + 1}`}
+                        alt={t("imageAlt", { n: i + 1 })}
                         fill
                         className="object-cover"
                         sizes="(max-width: 1024px) 45vw, 200px"
@@ -105,7 +107,7 @@ export function Hero() {
                   ))}
                 </div>
                 <div className="mt-4 flex items-center justify-between rounded-2xl bg-background/80 px-3 py-2 text-xs text-muted-foreground ring-1 ring-border/80">
-                  <span>Share link · Copy · WhatsApp</span>
+                  <span>{t("previewFooter")}</span>
                   <span className="font-mono text-[10px] text-primary">
                     ●●●
                   </span>

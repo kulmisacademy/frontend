@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import {
   BadgeCheck,
   Heart,
@@ -10,11 +10,12 @@ import {
   MessageCircle,
   ShoppingCart,
 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { getProductCardDescription, type Product } from "@/lib/catalog";
-import { CART_SINGLE_STORE_ERROR, useCart } from "@/context/cart-context";
+import { useCart } from "@/context/cart-context";
 import { useAuth } from "@/context/auth-context";
 import { formatPrice } from "@/lib/format";
-import { productUrl } from "@/lib/urls";
+import { productAbsoluteUrl, productPath } from "@/lib/urls";
 import { openWhatsAppProductOrder } from "@/lib/whatsapp-order";
 import { ProductImageLightbox } from "@/components/product-image-lightbox";
 import { Button } from "@/components/ui/button";
@@ -27,12 +28,15 @@ type ProductCardProps = {
 };
 
 export function ProductCard({ product, imagePriority }: ProductCardProps) {
+  const t = useTranslations("product");
+  const tCart = useTranslations("cart");
+  const locale = useLocale();
   const { addItem } = useCart();
   const { user, token } = useAuth();
   const [favorite, setFavorite] = React.useState(false);
   const [waBusy, setWaBusy] = React.useState(false);
   const [lightboxOpen, setLightboxOpen] = React.useState(false);
-  const absUrl = productUrl(product.id);
+  const absUrl = productAbsoluteUrl(product.id, locale);
   const verified = product.vendorVerified === true;
 
   const galleryImages = React.useMemo(() => {
@@ -87,7 +91,7 @@ export function ProductCard({ product, imagePriority }: ProductCardProps) {
             "relative h-[180px] w-full cursor-zoom-in overflow-hidden rounded-xl bg-muted outline-none",
             "ring-offset-2 focus-visible:ring-2 focus-visible:ring-primary/50"
           )}
-          aria-label={`View ${product.name} — fullscreen images`}
+          aria-label={t("viewFullscreen", { name: product.name })}
         >
           <Image
             src={product.image}
@@ -125,19 +129,19 @@ export function ProductCard({ product, imagePriority }: ProductCardProps) {
                 aria-hidden
               />
               <span className="truncate">
-                {product.inStock ? "In stock" : "Out"}
+                {product.inStock ? t("inStock") : t("outShort")}
               </span>
             </span>
             {product.popular ? (
               <span className="rounded-full bg-amber-400/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-950 shadow-sm ring-1 ring-black/5 sm:px-2 sm:text-[10px]">
-                Popular
+                {t("popular")}
               </span>
             ) : null}
           </div>
 
           <button
             type="button"
-            aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+            aria-label={favorite ? t("favRemove") : t("favAdd")}
             aria-pressed={favorite}
             onClick={(e) => {
               e.preventDefault();
@@ -164,7 +168,7 @@ export function ProductCard({ product, imagePriority }: ProductCardProps) {
       <div className="flex min-h-0 flex-1 flex-col gap-1 px-0 pb-0 pt-2 sm:gap-1.5 sm:pt-2.5">
         <div className="flex items-start justify-between gap-1.5 sm:gap-2">
           <Link
-            href={`/product/${product.id}`}
+            href={productPath(product.id)}
             className="font-heading min-w-0 flex-1 text-[12px] font-medium leading-snug tracking-tight text-foreground transition-colors hover:text-primary sm:text-[13px]"
           >
             <span className="line-clamp-2 leading-snug">{product.name}</span>
@@ -196,7 +200,7 @@ export function ProductCard({ product, imagePriority }: ProductCardProps) {
             {verified ? (
               <span
                 className="inline-flex shrink-0 items-center gap-0.5 text-primary"
-                title="Verified store"
+                title={t("verifiedStore")}
               >
                 <BadgeCheck
                   className="size-3 shrink-0 sm:size-3.5"
@@ -204,7 +208,7 @@ export function ProductCard({ product, imagePriority }: ProductCardProps) {
                   strokeWidth={2.5}
                 />
                 <span className="hidden font-semibold uppercase tracking-wide sm:inline sm:text-[10px]">
-                  Verified
+                  {t("verified")}
                 </span>
               </span>
             ) : null}
@@ -225,7 +229,7 @@ export function ProductCard({ product, imagePriority }: ProductCardProps) {
             onClick={() => {
               const r = addItem(product, 1);
               if (!r.ok && r.error === "STORE_MISMATCH") {
-                window.alert(CART_SINGLE_STORE_ERROR);
+                window.alert(tCart("singleStoreError"));
               }
             }}
             className={cn(
@@ -236,12 +240,12 @@ export function ProductCard({ product, imagePriority }: ProductCardProps) {
             )}
           >
             <ShoppingCart aria-hidden className="shrink-0" />
-            <span className="min-w-0 truncate sm:hidden">Cart</span>
-            <span className="hidden min-w-0 truncate sm:inline">Add to cart</span>
+            <span className="min-w-0 truncate sm:hidden">{t("cartShort")}</span>
+            <span className="hidden min-w-0 truncate sm:inline">{t("addToCart")}</span>
           </Button>
           <Button
             type="button"
-            title="Order via WhatsApp"
+            title={t("whatsappTitle")}
             disabled={!product.inStock || waBusy}
             onClick={(e) => void handleWhatsApp(e)}
             className={cn(
@@ -257,7 +261,7 @@ export function ProductCard({ product, imagePriority }: ProductCardProps) {
               strokeWidth={2}
             />
             <span className="min-w-0 truncate text-center leading-tight">
-              {waBusy ? "…" : "WhatsApp"}
+              {waBusy ? "…" : t("whatsapp")}
             </span>
           </Button>
         </div>

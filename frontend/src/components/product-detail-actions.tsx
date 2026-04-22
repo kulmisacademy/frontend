@@ -1,19 +1,23 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { MessageCircle, ShoppingCart } from "lucide-react";
 import type { Product } from "@/lib/catalog";
-import { CART_SINGLE_STORE_ERROR, useCart } from "@/context/cart-context";
+import { useCart } from "@/context/cart-context";
 import { useAuth } from "@/context/auth-context";
-import { productUrl } from "@/lib/urls";
+import { productAbsoluteUrl } from "@/lib/urls";
 import { openWhatsAppProductOrder } from "@/lib/whatsapp-order";
 import { Button } from "@/components/ui/button";
 
 export function ProductDetailActions({ product }: { product: Product }) {
+  const t = useTranslations("product");
+  const tCart = useTranslations("cart");
+  const locale = useLocale();
   const { addItem } = useCart();
   const { user, token } = useAuth();
   const [waBusy, setWaBusy] = React.useState(false);
-  const absUrl = productUrl(product.id);
+  const absUrl = productAbsoluteUrl(product.id, locale);
 
   async function handleWhatsApp() {
     if (!product.inStock || waBusy) return;
@@ -46,12 +50,12 @@ export function ProductDetailActions({ product }: { product: Product }) {
         onClick={() => {
           const r = addItem(product, 1);
           if (!r.ok && r.error === "STORE_MISMATCH") {
-            window.alert(CART_SINGLE_STORE_ERROR);
+            window.alert(tCart("singleStoreError"));
           }
         }}
       >
         <ShoppingCart className="size-4 shrink-0 sm:size-5" />
-        <span className="line-clamp-2 text-balance leading-snug">Add to cart</span>
+        <span className="line-clamp-2 text-balance leading-snug">{t("addToCart")}</span>
       </Button>
       <Button
         size="lg"
@@ -63,7 +67,7 @@ export function ProductDetailActions({ product }: { product: Product }) {
       >
         <MessageCircle className="size-4 shrink-0 sm:size-5" />
         <span className="line-clamp-2 text-balance leading-snug">
-          {waBusy ? "Opening…" : "Order on WhatsApp"}
+          {waBusy ? t("opening") : t("whatsappOrder")}
         </span>
       </Button>
     </div>

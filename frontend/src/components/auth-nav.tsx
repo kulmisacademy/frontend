@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { useOptionalAuth } from "@/context/auth-context";
 import { Spinner } from "@/components/ui/spinner";
@@ -18,12 +18,13 @@ function roleHome(role: string): string {
 }
 
 export function AuthNav() {
+  const t = useTranslations("authNav");
   const router = useRouter();
   const auth = useOptionalAuth();
   if (!auth) {
     return (
       <Button size="sm" className="rounded-xl" asChild>
-        <Link href="/login">Sign in</Link>
+        <Link href="/login">{t("signIn")}</Link>
       </Button>
     );
   }
@@ -46,10 +47,10 @@ export function AuthNav() {
           className="hidden rounded-xl sm:inline-flex"
           asChild
         >
-          <Link href="/register-vendor">Sell on LAAS24</Link>
+          <Link href="/register-vendor">{t("sellOnLaas")}</Link>
         </Button>
         <Button size="sm" className="rounded-xl" asChild>
-          <Link href="/login">Sign in</Link>
+          <Link href="/login">{t("signIn")}</Link>
         </Button>
       </>
     );
@@ -60,10 +61,10 @@ export function AuthNav() {
       <Button variant="outline" size="sm" className="rounded-xl" asChild>
         <Link href={roleHome(user.role)}>
           {user.role === "vendor"
-            ? "Dashboard"
+            ? t("dashboard")
             : user.role === "admin"
-              ? "Admin"
-              : "Profile"}
+              ? t("admin")
+              : t("profile")}
         </Link>
       </Button>
       <Button
@@ -78,7 +79,7 @@ export function AuthNav() {
           });
         }}
       >
-        Sign out
+        {t("signOut")}
       </Button>
     </>
   );
