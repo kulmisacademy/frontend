@@ -4,13 +4,18 @@ CREATE OR REPLACE FUNCTION public.laas24_slugify(raw text)
 RETURNS text
 LANGUAGE sql
 IMMUTABLE
-AS $f$
+AS $function$
   SELECT NULLIF(
     LEFT(
       TRIM(BOTH '-' FROM REGEXP_REPLACE(
         REGEXP_REPLACE(
-          LOWER(TRIM(COALESCE(raw, ''))),
-          '[''']',
+          REGEXP_REPLACE(
+            LOWER(TRIM(COALESCE(raw, ''))),
+            chr(39),
+            '',
+            'g'
+          ),
+          chr(8217),
           '',
           'g'
         ),
@@ -22,7 +27,7 @@ AS $f$
     ),
     ''
   );
-$f$;
+$function$;
 
 CREATE TABLE IF NOT EXISTS public.product_categories (
   slug text PRIMARY KEY,
