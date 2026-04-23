@@ -94,6 +94,16 @@ export const dashboardEn: Record<string, string> = {
   "vendorDashboard.cardRevenue": "Revenue",
   "vendorDashboard.soon": "Soon",
   "vendorDashboard.viewStore": "View store",
+  "vendorDashboard.storeLinkCardTitle": "Your store link",
+  "vendorDashboard.storeLinkCardHint":
+    "Copy or share this link so customers can open your storefront.",
+  "vendorDashboard.storeLinkCopy": "Copy",
+  "vendorDashboard.storeLinkOpen": "Open",
+  "vendorDashboard.storeLinkWhatsApp": "WhatsApp",
+  "vendorDashboard.storeLinkCopied": "Link copied to clipboard.",
+  "vendorDashboard.storeLinkCopyFailed": "Could not copy. Try selecting the link manually.",
+  "vendorDashboard.storeLinkWaMessage":
+    "Check out my store on LAAS24 — shop here:",
   "vendorDashboard.marketplace": "Marketplace",
   "vendorDashboard.plan": "Plan",
   "vendorDashboard.verified": "Verified",
@@ -207,6 +217,17 @@ export const dashboardSo: Record<string, string> = {
   "vendorDashboard.cardRevenue": "Dakhli",
   "vendorDashboard.soon": "Dhawaan",
   "vendorDashboard.viewStore": "Arag dukaanka",
+  "vendorDashboard.storeLinkCardTitle": "Link-ka dukaankaaga",
+  "vendorDashboard.storeLinkCardHint":
+    "Nuqul ama la wadaag si macaamiisha ay u furaan dukaankaaga.",
+  "vendorDashboard.storeLinkCopy": "Nuqul",
+  "vendorDashboard.storeLinkOpen": "Fur",
+  "vendorDashboard.storeLinkWhatsApp": "WhatsApp",
+  "vendorDashboard.storeLinkCopied": "Link-ka waa la nuqulsaday.",
+  "vendorDashboard.storeLinkCopyFailed":
+    "Nuqul ma suurto gal ahayn. Isku day inaad gacanta ku doorato link-ka.",
+  "vendorDashboard.storeLinkWaMessage":
+    "Eeg dukaankayga LAAS24 — halkan ka iibso:",
   "vendorDashboard.marketplace": "Suuqa",
   "vendorDashboard.plan": "Qorshe",
   "vendorDashboard.verified": "La xaqiijiyay",

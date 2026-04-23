@@ -21,3 +21,9 @@ export function productPath(id: string): string {
 export function productAbsoluteUrl(id: string, locale: string): string {
   return `${getSiteBase()}/${locale}/product/${id}`;
 }
+
+/** Public storefront URL (no locale segment; site middleware redirects to default locale). */
+export function storePublicUrl(slug: string): string {
+  const s = encodeURIComponent(slug);
+  return `${getSiteBase()}/store/${s}`;
+}

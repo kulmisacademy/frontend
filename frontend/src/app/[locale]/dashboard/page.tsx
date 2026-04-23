@@ -16,6 +16,7 @@ import { useAuth } from "@/context/auth-context";
 import { apiFetch } from "@/lib/api";
 import { useDashboardI18n } from "@/context/dashboard-i18n-context";
 import { RecentOrdersSnippet } from "@/components/dashboard/recent-orders-snippet";
+import { StoreLinkShareCard } from "@/components/dashboard/store-link-share-card";
 
 type Overview = {
   store: {
@@ -143,6 +144,10 @@ export default function VendorDashboardPage() {
           </Button>
         </div>
       </div>
+
+      {slug ? (
+        <StoreLinkShareCard slug={slug} storeName={storeName ?? null} />
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((s) => (
