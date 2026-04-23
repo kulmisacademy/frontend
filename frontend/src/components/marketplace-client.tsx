@@ -1,15 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ArrowDownWideNarrow, Check, SlidersHorizontal } from "lucide-react";
 import {
-  type CategoryFilter,
+  CATEGORY_FILTER_ALL,
   PRICE_MAX,
   type Product,
   type SortOption,
 } from "@/lib/catalog";
-import { fetchCatalogProductsPageClient } from "@/lib/catalog-api";
+import type { CatalogCategory, CategorySlugFilter } from "@/lib/catalog-types";
+import {
+  fetchCatalogCategoriesClient,
+  fetchCatalogProductsPageClient,
+} from "@/lib/catalog-api";
 import { Spinner } from "@/components/ui/spinner";
 import { ProductCard } from "@/components/product-card";
 import { MarketplaceBottomSheet } from "@/components/marketplace-bottom-sheet";
@@ -19,6 +23,7 @@ import {
   SORT_OPTION_VALUES,
   sortOptionLabelKey,
 } from "@/components/marketplace-filters-form";
+import { CategoryFilterChips } from "@/components/category-filter-chips";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,7 +36,7 @@ import { cn } from "@/lib/utils";
 import { CATALOG_PAGE_SIZE } from "@/shared/catalog-limits";
 
 const defaultFilters = (): MarketplaceFiltersState => ({
-  category: "All",
+  category: CATEGORY_FILTER_ALL,
   location: "all",
   priceMax: PRICE_MAX,
   query: "",
@@ -64,12 +69,19 @@ function MarketplaceGridSkeleton() {
 export function MarketplaceClient() {
   const tm = useTranslations("marketplace");
   const tf = useTranslations("filters");
+  const tc = useTranslations("categories");
+  const locale = useLocale();
   const [products, setProducts] = React.useState<Product[]>([]);
   const [total, setTotal] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [catalogCategories, setCatalogCategories] = React.useState<
+    CatalogCategory[]
+  >([]);
 
-  const [category, setCategory] = React.useState<CategoryFilter>("All");
+  const [category, setCategory] = React.useState<CategorySlugFilter>(
+    CATEGORY_FILTER_ALL
+  );
   const [location, setLocation] = React.useState("all");
   const [sort, setSort] = React.useState<SortOption>("latest");
   const [priceMax, setPriceMax] = React.useState(PRICE_MAX);
@@ -81,6 +93,16 @@ export function MarketplaceClient() {
     const t = setTimeout(() => setDebouncedQuery(query), 320);
     return () => clearTimeout(t);
   }, [query]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void fetchCatalogCategoriesClient().then((rows) => {
+      if (!cancelled) setCatalogCategories(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   React.useEffect(() => {
     setPage(1);
@@ -96,7 +118,8 @@ export function MarketplaceClient() {
         const data = await fetchCatalogProductsPageClient({
           page,
           limit: CATALOG_PAGE_SIZE,
-          category: category === "All" ? undefined : category,
+          category:
+            category === CATEGORY_FILTER_ALL ? undefined : category,
           location,
           sort,
           priceMin: 0,
@@ -167,7 +190,7 @@ export function MarketplaceClient() {
   const sortLabel = tf(sortOptionLabelKey(sort));
 
   const isDefaultFilters =
-    category === "All" &&
+    category === CATEGORY_FILTER_ALL &&
     location === "all" &&
     priceMax >= PRICE_MAX &&
     !debouncedQuery.trim();
@@ -220,6 +243,8 @@ export function MarketplaceClient() {
             priceMax={priceMax}
             query={query}
             sort={sort}
+            catalogCategories={catalogCategories}
+            locale={locale}
             onCategoryChange={setCategory}
             onLocationChange={setLocation}
             onPriceMaxChange={setPriceMax}
@@ -253,6 +278,19 @@ export function MarketplaceClient() {
               <ArrowDownWideNarrow className="size-4 shrink-0 text-primary" />
               <span className="truncate">{sortLabel}</span>
             </Button>
+          </div>
+
+          <div className="space-y-2 md:hidden">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {tf("category")}
+            </span>
+            <CategoryFilterChips
+              categories={catalogCategories}
+              locale={locale}
+              value={category}
+              onChange={setCategory}
+              allLabel={tc("All")}
+            />
           </div>
 
           <p className="text-sm text-muted-foreground">
@@ -336,6 +374,8 @@ export function MarketplaceClient() {
           priceMax={draft.priceMax}
           query={draft.query}
           sort={draft.sort}
+          catalogCategories={catalogCategories}
+          locale={locale}
           onCategoryChange={(c) => setDraftField("category", c)}
           onLocationChange={(v) => setDraftField("location", v)}
           onPriceMaxChange={(n) => setDraftField("priceMax", n)}

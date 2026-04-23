@@ -1,4 +1,5 @@
 import type { Product } from "@/lib/catalog";
+import { slugifyCategory } from "@/lib/slugify";
 
 const PLACEHOLDER = "/placeholder-product.svg";
 
@@ -33,6 +34,7 @@ export type ApiProductPublic = {
   price: number;
   old_price: number | null;
   category: string;
+  category_slug?: string | null;
   images: string[];
   image: string | null;
   video_url: string | null;
@@ -58,6 +60,7 @@ export function apiProductToCard(
     price: p.price,
     oldPrice: p.old_price ?? undefined,
     category: p.category,
+    categorySlug: p.category_slug ?? slugifyCategory(p.category),
     location: store.location?.city ?? "",
     image: img,
     images: gallery,

@@ -2,6 +2,8 @@ const { z } = require("zod");
 const storeModel = require("../models/store.model");
 const { verifiedEffective } = require("../lib/store-effective-plan");
 const productModel = require("../models/product.model");
+const categoryModel = require("../models/category.model");
+const { slugify } = require("../lib/slug");
 const orderModel = require("../models/order.model");
 const ratingModel = require("../models/rating.model");
 const followModel = require("../models/follow.model");
@@ -55,6 +57,7 @@ function mapPublicProduct(p, store) {
     price: Number(p.price),
     old_price: p.old_price != null ? Number(p.old_price) : null,
     category: p.category,
+    category_slug: p.category_slug || slugify(p.category || "general"),
     images,
     image: images[0] || null,
     video_url: p.video_url,
@@ -73,9 +76,9 @@ async function getPublicStore(req, res) {
     if (!store || store.status === "rejected") {
       return res.status(404).json({ error: "Store not found" });
     }
-    const products = await productModel.listByStoreId(store.id);
+    const productRows = await productModel.listByStoreId(store.id);
     const q = (req.query.q || "").toString().trim().toLowerCase();
-    let list = products.map((p) => mapPublicProduct(p, store));
+    let list = productRows.map((p) => mapPublicProduct(p, store));
     if (q) {
       list = list.filter(
         (p) =>
@@ -84,6 +87,25 @@ async function getPublicStore(req, res) {
           (p.category && p.category.toLowerCase().includes(q))
       );
     }
+    const slugSet = [
+      ...new Set(
+        productRows.map(
+          (p) => p.category_slug || slugify(p.category || "general")
+        )
+      ),
+    ].filter(Boolean);
+    const categoryRows = await categoryModel.listBySlugs(slugSet);
+    const bySlug = new Map(categoryRows.map((c) => [c.slug, c]));
+    const categories = slugSet
+      .map((slug) => {
+        const row = bySlug.get(slug);
+        return {
+          slug,
+          name_en: row?.name_en ?? slug,
+          name_so: row?.name_so ?? slug,
+        };
+      })
+      .sort((a, b) => a.name_en.localeCompare(b.name_en));
     const { average: rating_average, count: rating_count } =
       await ratingModel.aggregateForStore(store.id);
     const reviewRows = await ratingModel.listByStoreId(store.id, 25);
@@ -114,6 +136,7 @@ async function getPublicStore(req, res) {
         is_following,
       },
       products: list,
+      categories,
       reviews,
     });
   } catch (e) {

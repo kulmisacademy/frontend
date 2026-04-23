@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import {
   MapPin,
@@ -20,6 +21,7 @@ import {
   type ApiStorePublic,
   type StoreReviewPublic,
 } from "@/lib/map-api-product";
+import { CategoryFilterChips } from "@/components/category-filter-chips";
 import { MarketingShell } from "@/components/marketing-shell";
 import { ProductCard } from "@/components/product-card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,9 @@ import { PageContainer } from "@/components/ui/section";
 import { buildWhatsAppMessageUrl } from "@/lib/whatsapp";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
+import { CATEGORY_FILTER_ALL, type CategorySlugFilter } from "@/lib/catalog";
+import type { CatalogCategory } from "@/lib/catalog-types";
+import { slugifyCategory } from "@/lib/slugify";
 import { cn } from "@/lib/utils";
 
 const BANNER_FALLBACK = "/placeholder-banner.svg";
@@ -39,12 +44,18 @@ type Props = {
     store: ApiStorePublic;
     products: ApiProductPublic[];
     reviews?: StoreReviewPublic[];
+    categories?: CatalogCategory[];
   };
 };
 
 export function StoreProfileClient({ api }: Props) {
   const [tab, setTab] = React.useState<Tab>("products");
   const [q, setQ] = React.useState("");
+  const [categoryFilter, setCategoryFilter] =
+    React.useState<CategorySlugFilter>(CATEGORY_FILTER_ALL);
+  const locale = useLocale();
+  const tf = useTranslations("filters");
+  const tc = useTranslations("categories");
   const { user, token } = useAuth();
   const [following, setFollowing] = React.useState(!!api.store.is_following);
   const [followBusy, setFollowBusy] = React.useState(false);
@@ -101,16 +112,36 @@ export function StoreProfileClient({ api }: Props) {
     apiProductToCard(p, api.store)
   );
 
+  const storeCategoryChips = React.useMemo((): CatalogCategory[] => {
+    const fromApi = api.categories ?? [];
+    if (fromApi.length > 0) return fromApi;
+    const slugSet = new Set(
+      cardProducts.map((p) => p.categorySlug ?? slugifyCategory(p.category))
+    );
+    return [...slugSet].map((slug) => ({
+      slug,
+      name_en: slug,
+      name_so: slug,
+    }));
+  }, [api.categories, cardProducts]);
+
   const filtered = React.useMemo(() => {
+    let list = cardProducts;
+    if (categoryFilter !== CATEGORY_FILTER_ALL) {
+      list = list.filter(
+        (p) =>
+          (p.categorySlug ?? slugifyCategory(p.category)) === categoryFilter
+      );
+    }
     const s = q.trim().toLowerCase();
-    if (!s) return cardProducts;
-    return cardProducts.filter(
+    if (!s) return list;
+    return list.filter(
       (p) =>
         p.name.toLowerCase().includes(s) ||
         (p.description && p.description.toLowerCase().includes(s)) ||
         p.category.toLowerCase().includes(s)
     );
-  }, [cardProducts, q]);
+  }, [cardProducts, q, categoryFilter]);
 
   // Use only NEXT_PUBLIC_SITE_URL (never window) so SSR and first client paint match.
   // Set e.g. NEXT_PUBLIC_SITE_URL=http://localhost:3000 in .env.local for correct absolute links.
@@ -258,6 +289,18 @@ export function StoreProfileClient({ api }: Props) {
 
           {tab === "products" ? (
             <>
+              <div className="-mx-1 mt-8 space-y-2">
+                <span className="block px-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {tf("category")}
+                </span>
+                <CategoryFilterChips
+                  categories={storeCategoryChips}
+                  locale={locale}
+                  value={categoryFilter}
+                  onChange={setCategoryFilter}
+                  allLabel={tc("All")}
+                />
+              </div>
               <div className="mt-8">
                 <label className="relative block max-w-xl">
                   <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -277,7 +320,7 @@ export function StoreProfileClient({ api }: Props) {
               </div>
               {filtered.length === 0 ? (
                 <p className="mt-10 rounded-2xl border border-dashed py-14 text-center text-muted-foreground">
-                  No products match your search.
+                  No products match your category or search.
                 </p>
               ) : null}
             </>

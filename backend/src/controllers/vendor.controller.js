@@ -13,6 +13,7 @@ const {
   verifiedEffective,
 } = require("../lib/store-effective-plan");
 const subscriptionPlanModel = require("../models/subscription-plan.model");
+const categoryModel = require("../models/category.model");
 const { slugify } = require("../lib/slug");
 const {
   isValidRegionCapital,
@@ -307,13 +308,17 @@ async function createProduct(req, res) {
       }
     }
     const features = parseFeaturesJson(req.body.features);
+    const categoryLabel = parsed.data.category?.trim() || "General";
+    const category_slug = slugify(categoryLabel) || "general";
+    await categoryModel.ensureCategory(category_slug, categoryLabel);
     const row = {
       store_id: store.id,
       name: parsed.data.name.trim(),
       description: parsed.data.description ?? null,
       price: parsed.data.price,
       old_price: parsed.data.old_price ?? null,
-      category: parsed.data.category?.trim() || "General",
+      category: categoryLabel,
+      category_slug,
       images: urls,
       video_url: videoUrl,
       in_stock: parsed.data.in_stock !== false,
@@ -354,7 +359,15 @@ async function updateProduct(req, res) {
       if (v !== undefined) patch[k] = v;
     }
     if (patch.name) patch.name = patch.name.trim();
-    if (patch.category) patch.category = patch.category.trim();
+    if (patch.category !== undefined) {
+      const label =
+        (typeof patch.category === "string" ? patch.category : "").trim() ||
+        "General";
+      patch.category = label;
+      const category_slug = slugify(label) || "general";
+      await categoryModel.ensureCategory(category_slug, label);
+      patch.category_slug = category_slug;
+    }
     if (patch.video_url === "") patch.video_url = null;
     if (patch.location === "") patch.location = null;
 

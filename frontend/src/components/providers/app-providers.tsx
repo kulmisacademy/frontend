@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { CartProvider } from "@/context/cart-context";
 import { AuthProvider } from "@/context/auth-context";
 import { ReferralCapture } from "@/components/referral-capture";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
@@ -17,6 +18,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     >
       <AuthProvider>
         <CartProvider>
+          <ServiceWorkerRegister />
           <Suspense fallback={null}>
             <ReferralCapture />
           </Suspense>

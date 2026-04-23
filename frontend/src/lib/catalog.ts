@@ -1,3 +1,9 @@
+import { slugifyCategory } from "@/lib/slugify";
+import type { CategorySlugFilter } from "@/lib/catalog-types";
+
+export type { CatalogCategory, CategorySlugFilter } from "@/lib/catalog-types";
+export { CATEGORY_FILTER_ALL } from "@/lib/catalog-types";
+
 export type Store = {
   id: string;
   slug: string;
@@ -21,6 +27,8 @@ export type Product = {
   price: number;
   oldPrice?: number;
   category: string;
+  /** Stable filter key; matches backend `category_slug`. */
+  categorySlug?: string;
   location: string;
   image: string;
   /** All image URLs for detail gallery (same order as vendor upload) */
@@ -144,17 +152,6 @@ export function matchesStoreLocation(
   return store.city === filterKey;
 }
 
-export const CATEGORIES = [
-  "All",
-  "Food",
-  "Electronics",
-  "Fashion",
-  "Home",
-  "Wellness",
-] as const;
-
-export type CategoryFilter = (typeof CATEGORIES)[number];
-
 export type SortOption = "latest" | "popular" | "price-asc" | "price-desc";
 
 /** One–two lines for product cards when `description` is not set on the product */
@@ -177,7 +174,7 @@ export function splitProductDescription(text: string): string[] {
 export function filterAndSortProducts(
   products: Product[],
   opts: {
-    category: CategoryFilter;
+    category: CategorySlugFilter;
     location: string;
     priceMin: number;
     priceMax: number;
@@ -188,7 +185,9 @@ export function filterAndSortProducts(
   let list = [...products];
 
   if (opts.category !== "All") {
-    list = list.filter((p) => p.category === opts.category);
+    list = list.filter(
+      (p) => (p.categorySlug ?? slugifyCategory(p.category)) === opts.category
+    );
   }
 
   if (opts.location !== "all") {

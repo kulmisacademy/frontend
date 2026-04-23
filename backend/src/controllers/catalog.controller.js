@@ -1,6 +1,8 @@
 const { z } = require("zod");
 const productModel = require("../models/product.model");
 const storeModel = require("../models/store.model");
+const categoryModel = require("../models/category.model");
+const { slugify } = require("../lib/slug");
 const { verifiedEffective } = require("../lib/store-effective-plan");
 
 const listProductsQuerySchema = z.object({
@@ -12,8 +14,9 @@ const listProductsQuerySchema = z.object({
     .max(120)
     .optional()
     .transform((s) => {
-      if (!s || s === "All") return undefined;
-      return s;
+      if (!s || /^all$/i.test(s)) return undefined;
+      const slug = slugify(s);
+      return slug || undefined;
     }),
   location: z.string().trim().max(160).optional().default("all"),
   sort: z
@@ -78,6 +81,7 @@ function mapProduct(p, store) {
     price: Number(p.price),
     oldPrice: p.old_price != null ? Number(p.old_price) : undefined,
     category: p.category,
+    categorySlug: p.category_slug || slugify(p.category || "general"),
     location: loc.city || "",
     image: img,
     images: gallery,
@@ -108,6 +112,22 @@ function mapStore(s, productCount) {
     productCount,
     verified: verifiedEffective(s),
   };
+}
+
+async function listCategories(req, res) {
+  try {
+    const rows = await categoryModel.listAllOrdered();
+    res.json({
+      categories: rows.map(({ slug, name_en, name_so }) => ({
+        slug,
+        name_en,
+        name_so,
+      })),
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to load categories" });
+  }
 }
 
 async function listStores(req, res) {
@@ -227,6 +247,7 @@ async function batchProducts(req, res) {
 
 module.exports = {
   listStores,
+  listCategories,
   listProducts,
   getProduct,
   batchProducts,

@@ -1,4 +1,5 @@
 import { getApiBaseUrl, SERVER_FETCH_TIMEOUT_MS } from "@/lib/api";
+import type { CatalogCategory } from "@/lib/catalog-types";
 import type { Product, Store } from "@/lib/catalog";
 
 type CatalogProductsRes = { products: Product[] };
@@ -11,6 +12,7 @@ type CatalogProductsPageRes = {
 export type CatalogProductsPage = CatalogProductsPageRes;
 type CatalogStoresRes = { stores: Store[] };
 type CatalogProductRes = { product: Product };
+type CatalogCategoriesRes = { categories: CatalogCategory[] };
 
 export type FetchCatalogPageParams = {
   page: number;
@@ -107,6 +109,19 @@ export async function fetchCatalogProductById(
 }
 
 /** Client-side catalog fetch (no Next cache); first page, up to 100 rows. */
+export async function fetchCatalogCategoriesClient(): Promise<
+  CatalogCategory[]
+> {
+  try {
+    const res = await fetch(`${clientCatalogBase()}/api/catalog/categories`);
+    if (!res.ok) return [];
+    const data = await readClientJson<CatalogCategoriesRes>(res);
+    return data?.categories ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchCatalogProductsClient(): Promise<Product[]> {
   const r = await fetchCatalogProductsPageClient({ page: 1, limit: 100 });
   return r.products;

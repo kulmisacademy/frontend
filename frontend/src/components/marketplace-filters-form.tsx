@@ -1,14 +1,10 @@
 "use client";
 
-import * as React from "react";
 import { useTranslations } from "next-intl";
 import { SlidersHorizontal } from "lucide-react";
-import {
-  CATEGORIES,
-  type CategoryFilter,
-  PRICE_MAX,
-  type SortOption,
-} from "@/lib/catalog";
+import { CategoryFilterChips } from "@/components/category-filter-chips";
+import type { CatalogCategory, CategorySlugFilter } from "@/lib/catalog-types";
+import { PRICE_MAX, type SortOption } from "@/lib/catalog";
 import { LocationSelect } from "@/components/ui/location-select";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -37,8 +33,11 @@ export function sortOptionLabelKey(
   }
 }
 
+const sortChipBase =
+  "inline-flex shrink-0 items-center justify-center rounded-full border px-3.5 py-2 text-xs font-semibold transition-all";
+
 export type MarketplaceFiltersState = {
-  category: CategoryFilter;
+  category: CategorySlugFilter;
   location: string;
   priceMax: number;
   query: string;
@@ -46,7 +45,9 @@ export type MarketplaceFiltersState = {
 };
 
 export type MarketplaceFiltersFormProps = MarketplaceFiltersState & {
-  onCategoryChange: (c: CategoryFilter) => void;
+  catalogCategories: CatalogCategory[];
+  locale: string;
+  onCategoryChange: (c: CategorySlugFilter) => void;
   onLocationChange: (v: string) => void;
   onPriceMaxChange: (n: number) => void;
   onQueryChange: (q: string) => void;
@@ -63,6 +64,8 @@ export function MarketplaceFiltersForm({
   priceMax,
   query,
   sort,
+  catalogCategories,
+  locale,
   onCategoryChange,
   onLocationChange,
   onPriceMaxChange,
@@ -105,23 +108,14 @@ export function MarketplaceFiltersForm({
             <SlidersHorizontal className="size-4 text-primary" />
             {tf("category")}
           </span>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => onCategoryChange(c)}
-                className={cn(
-                  "rounded-full border px-3.5 py-2 text-xs font-semibold transition-all",
-                  category === c
-                    ? "border-primary bg-primary text-primary-foreground shadow-md"
-                    : "border-border/80 bg-background/90 text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                )}
-              >
-                {tc(c as "All" | "Food" | "Electronics" | "Fashion" | "Home" | "Wellness")}
-              </button>
-            ))}
-          </div>
+          <CategoryFilterChips
+            categories={catalogCategories}
+            locale={locale}
+            value={category}
+            onChange={onCategoryChange}
+            allLabel={tc("All")}
+            className={compact ? "" : "md:-mr-1"}
+          />
         </div>
         <div
           className={cn(
@@ -132,17 +126,17 @@ export function MarketplaceFiltersForm({
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {tf("sortBy")}
           </span>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2 overflow-x-auto overflow-y-hidden pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden">
             {SORT_OPTION_VALUES.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => onSortChange(s)}
                 className={cn(
-                  "rounded-lg px-3 py-2 text-xs font-semibold transition-all",
+                  sortChipBase,
                   sort === s
-                    ? "bg-foreground text-background shadow-sm"
-                    : "text-muted-foreground hover:bg-muted"
+                    ? "border-primary bg-primary text-primary-foreground shadow-md"
+                    : "border-border/80 bg-background/90 text-muted-foreground hover:border-primary/40 hover:text-foreground"
                 )}
               >
                 {tf(sortOptionLabelKey(s))}

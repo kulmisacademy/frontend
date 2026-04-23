@@ -147,7 +147,7 @@ function sanitizeIlikeTerm(raw) {
 /** Apply catalog filters (caller must already scope `store_id` with `.in(...)`). */
 function applyCatalogFilters(query, { category, priceMin, priceMax, search, inStockOnly }) {
   let q = query;
-  if (category) q = q.eq("category", category);
+  if (category) q = q.eq("category_slug", category);
   if (typeof priceMin === "number" && priceMin > 0) q = q.gte("price", priceMin);
   if (typeof priceMax === "number" && !Number.isNaN(priceMax)) q = q.lte("price", priceMax);
   if (inStockOnly) q = q.eq("in_stock", true);

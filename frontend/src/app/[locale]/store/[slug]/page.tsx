@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getApiBaseUrl, SERVER_FETCH_TIMEOUT_MS } from "@/lib/api";
+import type { CatalogCategory } from "@/lib/catalog-types";
 import type {
   ApiProductPublic,
   ApiStorePublic,
@@ -24,6 +25,7 @@ async function fetchApiStore(slug: string) {
       store: ApiStorePublic;
       products: ApiProductPublic[];
       reviews: StoreReviewPublic[];
+      categories?: CatalogCategory[];
     }>;
   } catch {
     return null;
