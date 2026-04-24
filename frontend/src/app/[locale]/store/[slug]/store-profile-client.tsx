@@ -232,31 +232,44 @@ export function StoreProfileClient({ api }: Props) {
                   {filtered.length} products · Shop with confidence on LAAS24.
                 </p>
               )}
-              <div className="flex flex-wrap gap-3 pt-2">
-                <Button className="rounded-2xl shadow-md" size="lg" asChild>
+              <div className="flex min-w-0 flex-nowrap gap-2 pt-2 sm:gap-3">
+                <Button
+                  className="min-w-0 flex-1 basis-0 rounded-2xl px-3 shadow-md sm:px-5"
+                  size="lg"
+                  asChild
+                >
                   <a href={wa} target="_blank" rel="noopener noreferrer">
-                    <MessageCircle className="size-4" />
-                    WhatsApp
+                    <MessageCircle className="size-4 shrink-0" />
+                    <span className="min-w-0 truncate">WhatsApp</span>
                   </a>
                 </Button>
                 <Button
                   type="button"
                   variant={following ? "secondary" : "outline"}
-                  className="rounded-2xl"
+                  className="min-w-0 flex-1 basis-0 rounded-2xl px-3 sm:px-5"
                   size="lg"
                   disabled={followBusy}
                   onClick={() => void toggleFollow()}
                 >
                   <Heart
                     className={cn(
-                      "size-4",
+                      "size-4 shrink-0",
                       following && "fill-primary text-primary"
                     )}
                   />
-                  {following ? "Following" : "Follow store"}
+                  <span className="min-w-0 truncate">
+                    {following ? "Following" : "Follow store"}
+                  </span>
                 </Button>
-                <Button variant="outline" className="rounded-2xl" size="lg" asChild>
-                  <Link href="/marketplace">Marketplace</Link>
+                <Button
+                  variant="outline"
+                  className="min-w-0 flex-1 basis-0 rounded-2xl px-3 sm:px-5"
+                  size="lg"
+                  asChild
+                >
+                  <Link href="/marketplace" className="min-w-0">
+                    <span className="min-w-0 truncate">Marketplace</span>
+                  </Link>
                 </Button>
               </div>
             </div>
